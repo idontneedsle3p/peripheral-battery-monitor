@@ -100,7 +100,7 @@ class TaskbarView:NativeWindow,IDisposable {
    using(var font=new Font("Segoe UI Variable Small",12.5f,FontStyle.Regular,GraphicsUnit.Pixel)){
     if(values.Length==0)using(var b=new SolidBrush(Color.Gray))g.DrawString(L.T("Нет устройств"),font,b,3,5);
     for(int i=0;i<Math.Min(values.Length,6);i++){
-     float x=3+i*70;var r=values[i];bool stale=r.IsStale;Color color=stale?Color.FromArgb(145,145,145):r.Percent<=15?Color.FromArgb(240,102,102):light?Color.FromArgb(30,30,30):Color.FromArgb(239,242,247);
+     float x=3+i*70;var r=values[i];bool stale=r.IsStale;Color color=stale?Color.FromArgb(145,145,145):r.LowBattery?Color.FromArgb(240,102,102):light?Color.FromArgb(30,30,30):Color.FromArgb(239,242,247);
      using(var pen=new Pen(color,1.3f))using(var brush=new SolidBrush(color)){
       pen.StartCap=pen.EndCap=System.Drawing.Drawing2D.LineCap.Round;pen.LineJoin=System.Drawing.Drawing2D.LineJoin.Round;
       using(var path=new System.Drawing.Drawing2D.GraphicsPath()){
@@ -111,9 +111,9 @@ class TaskbarView:NativeWindow,IDisposable {
        }else if(r.Kind==DeviceKind.Mouse){
         path.AddBezier(x+2,11,x+2,3,x+14,3,x+14,11);path.AddLine(x+14,11,x+14,16);path.AddBezier(x+14,16,x+14,23,x+2,23,x+2,16);path.CloseFigure();g.DrawPath(pen,path);
         g.DrawLine(pen,x+8,7.5f,x+8,11);
-       }else{g.DrawRectangle(pen,x,8,16,11);g.DrawLine(pen,x+4,12,x+12,12);g.DrawLine(pen,x+4,15,x+12,15);}
+       }else if(r.Kind==DeviceKind.Controller){path.AddBezier(x+2,11,x+2,6,x+14,6,x+14,11);path.AddBezier(x+14,11,x+19,22,x+12,20,x+10,16);path.AddLine(x+10,16,x+6,16);path.AddBezier(x+6,16,x+2,22,x-3,20,x+2,11);path.CloseFigure();g.DrawPath(pen,path);g.DrawLine(pen,x+3,11,x+7,11);g.DrawLine(pen,x+5,9,x+5,13);g.FillEllipse(brush,x+11,10,1.6f,1.6f);}else{g.DrawRectangle(pen,x,8,16,11);g.DrawLine(pen,x+4,12,x+12,12);g.DrawLine(pen,x+4,15,x+12,15);}
       }
-      string text=values.Length>6 && i==5?"+"+(values.Length-5):(r.Percent.HasValue?r.Percent+"%":"—");
+      string text=values.Length>6 && i==5?"+"+(values.Length-5):r.ShortDisplay;
       using(var format=(StringFormat)StringFormat.GenericTypographic.Clone()){
        format.FormatFlags|=StringFormatFlags.NoClip;
        // Outline glyphs retain smooth coverage on a transparent layered window.

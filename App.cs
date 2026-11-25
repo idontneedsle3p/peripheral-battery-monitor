@@ -15,7 +15,7 @@ static class Program {
   L.Load(Path.Combine(Data,"language.txt"));Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
   if(args.Length>0 && args[0]=="--render-test"){
    foreach(int count in new[]{0,1,3,8,20})foreach(float dpi in new[]{1f,1.25f,2f}){
-    var readings=Enumerable.Range(0,count).Select(i=>new Reading("Test "+i){Kind=(DeviceKind)(i%5),Percent=i%2==0?100:0,IsStale=i%3==0}).ToArray();
+    var readings=Enumerable.Range(0,count).Select(i=>new Reading("Test "+i){Kind=(DeviceKind)(i%5),Percent=i%5==3?(int?)null:(i%2==0?100:0),Level=i%5==3?(BatteryLevel?)(i%6):null,IsStale=i%3==0}).ToArray();
     using(var bitmap=TaskbarView.DrawStrip(readings,dpi,false))if(bitmap.Width<=0 || bitmap.Height<=0)throw new InvalidOperationException("Invalid rendering size");
    }return 0;
   }
@@ -41,7 +41,7 @@ class TrayApplication:ApplicationContext {
  bool busy,quitting;ContextMenuStrip menu;ToolStripMenuItem widgetItem,startItem,monitorItem,languageItem,ruItem,enItem,logItem,exitItem;DateTime? updated;string pollError;DateTime nextPoll=DateTime.MinValue;
  public TrayApplication(){
   menu=new ContextMenuStrip();menu.Items.Add(devicesItem);devicesItem.DropDownOpening+=(s,e)=>BuildDeviceMenu();
-  menu.Items.Add(status);menu.Items.Add(new ToolStripSeparator());refresh.Click+=(s,e)=>Poll();menu.Items.Add(refresh);
+  menu.Items.Add(status);menu.Items.Add(new ToolStripSeparator());refresh.Click+=(s,e)=>Poll(true);menu.Items.Add(refresh);
   widgetItem=new ToolStripMenuItem(L.T("Заряд на панели задач")){Checked=true,CheckOnClick=true};menu.Items.Add(widgetItem);
   startItem=new ToolStripMenuItem(L.T("Запускать с Windows")){CheckOnClick=true};menu.Items.Add(startItem);
   using(var key=Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run")){startItem.Checked=key!=null && key.GetValue("MyMchose")!=null;}
@@ -93,16 +93,16 @@ class TrayApplication:ApplicationContext {
   if(strip.Target!="all" && strip.Target!="primary" && !screens.Any(s=>s.DeviceName==strip.Target))monitorItem.DropDownItems.Add(new ToolStripMenuItem(L.T("Выбранный монитор отключён")){Enabled=false});
  }
  void AddMonitorChoice(string label,string target){var item=new ToolStripMenuItem(label){Checked=strip.Target==target};item.Click+=(s,e)=>{strip.Target=target;SaveWidget();BuildMonitorMenu();};monitorItem.DropDownItems.Add(item);}
- async void Poll(){
+ async void Poll(bool force=false){
   if(busy || quitting)return;busy=true;refresh.Enabled=false;status.Text=L.T("Читаю заряд устройств…");nextPoll=DateTime.UtcNow.AddSeconds(30);
   try{
-   var lines=new System.Collections.Generic.List<string>();var fresh=await Task.Run(()=>{var c=Hid.Enumerate();foreach(var h in c)if(h.Vid==0x2023 || h.Vid==0x3837)lines.Add(h.ToString());return Devices.Poll(c,s=>lines.Add(s));});
+   var lines=new System.Collections.Generic.List<string>();var fresh=await Task.Run(()=>{var c=Hid.Enumerate();foreach(var h in c)if(h.Vid==0x2023 || h.Vid==0x3837 || h.Vid==0x5253)lines.Add(h.ToString());return Devices.Poll(c,s=>lines.Add(s),force);});
    if(quitting)return;
    values=fresh;
    foreach(var r in values){
     bool current=!r.IsStale && r.Time.HasValue && (DateTime.Now-r.Time.Value).TotalSeconds<10;
-    if(current && r.Percent.HasValue){if(r.Percent>20 || r.Charging)warned.Remove(r.Id);
-     if(r.Percent<=15 && !r.Charging && warned.Add(r.Id))tray[0].ShowBalloonTip(6000,L.T("Пора зарядить ")+r.Name,L.T("Осталось ")+r.Percent+"%",ToolTipIcon.Warning);}
+    if(current && (r.Percent.HasValue || r.Level.HasValue)){if((r.Percent.HasValue?r.Percent>20:!r.LowBattery) || r.Charging)warned.Remove(r.Id);
+     if(r.LowBattery && !r.Charging && warned.Add(r.Id))tray[0].ShowBalloonTip(6000,L.T("Пора зарядить ")+r.Name,r.Display,ToolTipIcon.Warning);}
     lines.Add(r.Name+" "+r.Display+" "+r.State);
    }
    File.WriteAllLines(Path.Combine(Program.Data,"status.log"),new[]{DateTime.Now.ToString("O")}.Concat(lines));updated=DateTime.Now;pollError=null;Render();UpdateStatus();

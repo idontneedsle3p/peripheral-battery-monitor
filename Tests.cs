@@ -46,11 +46,43 @@ class Tests {
   frame[18]=2;frame[20]=101;ModernChecksum(frame);Check(MchoseModernDriver.Parse(frame)==null,"modern invalid percentage");
   frame[20]=50;frame[7]=1;ModernChecksum(frame);Check(MchoseModernDriver.Parse(frame)==null,"modern sequence mismatch");
   var ax5=new MchoseAx5Driver();Check(ax5.Matches(new HidCollection{Vid=0x2023,Pid=0xF013,Page=0xFFFF,Feature=65}),"A5 shared receiver matched");Check(!ax5.Matches(new HidCollection{Vid=0x2023,Pid=0xF023,Page=0xFFFF,Feature=65}),"AX5 bootloader excluded");
+  var kb=new MchoseKeyboardDriver();Check(kb.Matches(new HidCollection{Vid=0x3837,Pid=0x3033,Page=0xFF31,Usage=0x74,Input=65,Output=65,Product="MCHOSE G75 V2 2.4G"}),"GLW keyboard collection matched");
+  Check(!kb.Matches(new HidCollection{Vid=0x3837,Pid=0x3033,Page=0xFF31,Usage=0x74,Input=65,Output=65,Product="MCHOSE K87S"}),"K87S excluded");
+  Check(MchoseKeyboardDriver.Parse(MchoseKeyboardDriver.Request())==null,"keyboard echo rejected");
+  byte[] keyboard=new byte[65];keyboard[1]=0xAA;keyboard[2]=5;keyboard[5]=56;keyboard[41]=85;KeyboardChecksum(keyboard);
+  Check(MchoseKeyboardDriver.Parse(keyboard).Percent==85,"keyboard battery offset");
+  keyboard[41]=0x80|60;KeyboardChecksum(keyboard);Check(MchoseKeyboardDriver.Parse(keyboard).Charging && MchoseKeyboardDriver.Parse(keyboard).Percent==60,"keyboard charging bit");
+  keyboard[4]^=1;Check(MchoseKeyboardDriver.Parse(keyboard)==null,"keyboard checksum rejected");KeyboardChecksum(keyboard);
+  Check(MchoseKeyboardDriver.Parse(new byte[10])==null,"keyboard truncated reply");
+  keyboard[41]=127;KeyboardChecksum(keyboard);Check(MchoseKeyboardDriver.Parse(keyboard)==null,"keyboard invalid percentage");
+  keyboard[41]=0;KeyboardChecksum(keyboard);Check(MchoseKeyboardDriver.Parse(keyboard).Percent==0,"keyboard zero battery valid");
+  byte[] unnumbered=new byte[64];Array.Copy(keyboard,1,unnumbered,0,64);Check(MchoseKeyboardDriver.Parse(unnumbered).Percent==0,"keyboard unnumbered payload");
+  Check(new MchoseX9Driver().Matches(new HidCollection{Vid=0x3837,Pid=0x600A,Page=0xFF90,Usage=1,Input=64,Output=64}),"V9 Turbo receiver matched");
+  Check(new MchoseX9Driver().Describe(new HidCollection{Pid=0x600A}).Experimental,"V9 Turbo experimental label");
+  var slow=new FakeDriver{Interval=TimeSpan.FromMinutes(10)};var scheduled=new BatteryMonitor(slow);scheduled.Poll(cols,s=>{});int calls=slow.Calls;
+  var cachedReadings=scheduled.Poll(cols,s=>{});Check(slow.Calls==calls && cachedReadings[0].Percent==50,"slow polling preserves cached readings");
+  scheduled.Poll(cols,s=>{},true);Check(slow.Calls==calls+3,"manual refresh bypasses cooldown");
+  scheduled.Poll(new System.Collections.Generic.List<HidCollection>(),s=>{});calls=slow.Calls;scheduled.Poll(cols,s=>{});Check(slow.Calls==calls+3,"reconnect bypasses cooldown");
+  var gamepad=XInputSource.Parse(0,new XInputBatteryReply{Type=2,Level=1});Check(!gamepad.Percent.HasValue && gamepad.Level==BatteryLevel.Low && gamepad.LowBattery,"XInput low level never invented percentage");
+  Check(XInputSource.Parse(0,new XInputBatteryReply{Type=3,Level=3}).Level==BatteryLevel.Full,"XInput NiMH full");
+  Check(XInputSource.Parse(1,new XInputBatteryReply{Type=1,Level=0}).Level==BatteryLevel.Wired,"wired controller not empty battery");
+  Check(XInputSource.Parse(0,new XInputBatteryReply{Type=255,Level=0}).Level==BatteryLevel.Unknown,"unknown type not empty battery");
+  Check(XInputSource.Parse(0,new XInputBatteryReply{Type=2,Level=200}).Level==BatteryLevel.Unknown,"invalid XInput level not shown");
+  Check(XInputSource.Parse(0,new XInputBatteryReply{Error=1167})==null,"disconnected XInput slot hidden");
+  Check(XInputSource.Parse(0,new XInputBatteryReply{Type=0})==null,"battery type disconnected hidden");
+  bool padConnected=true;var pads=new XInputSource(i=>new XInputBatteryReply{Error=padConnected && i==0?0u:1167u,Type=2,Level=2});
+  var padReadings=pads.Poll(s=>{});Check(padReadings.Length==1 && padReadings[0].Id=="xinput:0","XInput only connected slots displayed");
+  padConnected=false;padReadings=pads.Poll(s=>{});Check(padReadings.Length==1 && padReadings[0].IsStale && padReadings[0].State=="Отключено","XInput disconnection retains stale state");
+  padConnected=true;Check(!pads.Poll(s=>{})[0].IsStale,"XInput reconnection restores fresh state");
+  Check(new XInputSource(i=>new XInputBatteryReply{Error=1167}).Poll(s=>{}).Length==0,"no phantom XInput devices");
+  L.Set("en");Check(gamepad.Display=="Low battery" && gamepad.ShortDisplay=="Low","English discrete levels");L.Set("ru");Check(gamepad.Display=="Низкий заряд","Russian discrete levels");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
+ static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}
  static void ModernChecksum(byte[] r){r[8+r[3]]=0;for(int i=2;i<8+r[3];i++)r[8+r[3]]^=r[i];}
 }
-class FakeDriver:IBatteryDriver {
+class FakeDriver:IBatteryDriver,IBatteryPollingPolicy {
+ public TimeSpan Interval;public TimeSpan MinimumPollInterval{get{return Interval;}}
  public bool Fail,Throw;public int Calls,Level=50;
  public string Id{get{return "test";}}
  public bool Matches(HidCollection c){return c.Vid==123;}

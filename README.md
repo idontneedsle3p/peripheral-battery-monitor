@@ -29,6 +29,8 @@ The application runs locally and makes no network requests.
 
 ### Supported devices
 
+Standard **XInput controller support** is now available across compatible brands, with discrete battery levels rather than invented percentages. Experimental GLW keyboard and V9 Turbo+ support is also included. See [compatibility and limitations](SUPPORTED_DEVICES.md).
+
 Expanded MCHOSE support includes A5/AX5 variants, classic L7/M7/A7-family receivers, and newer K7 V2-family receivers. New additions are **experimental**, not hardware-verified in this project. See the complete [device and USB ID matrix](SUPPORTED_DEVICES.md).
 
 | Device | Connection | VID:PID | Status |
@@ -75,6 +77,8 @@ Settings and the latest log are stored in `%LOCALAPPDATA%\MyMchose`. The selecte
 | `Devices.cs` | Data model, driver registry, device state, and response parsing |
 | `MchoseDrivers.cs` | X9 and A5/AX5 battery drivers |
 | `MchoseMouseDrivers.cs` | Experimental classic and modern MCHOSE mouse protocols |
+| `MchoseKeyboardDriver.cs` | Experimental GLW keyboard protocol |
+| `XInputSource.cs` | Standard Windows controller battery source |
 | `Localization.cs` | Translation dictionary, language selection, and persistence |
 | `Hid.cs` | HID enumeration and Win32 communication |
 | `Monitors.cs` | Monitor selection and widget instance management |
@@ -124,6 +128,8 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 ### Устройства
 
+Добавлен стандартный источник **XInput** для совместимых геймпадов разных брендов: уровни заряда вместо выдуманных процентов. Также включены экспериментальные модули клавиатур GLW и V9 Turbo+. Подробнее: [совместимость и ограничения](SUPPORTED_DEVICES.md).
+
 Добавлена экспериментальная поддержка вариантов A5/AX5, классических приёмников семейств L7/M7/A7 и новых приёмников K7 V2. Новые модели ещё не проверены в этом проекте на оборудовании. Полная [таблица моделей и USB ID](SUPPORTED_DEVICES.md).
 
 | Устройство | Подключение | VID:PID | Проверка |
@@ -170,6 +176,8 @@ powershell -ExecutionPolicy Bypass -File .\test.ps1
 | `Devices.cs` | Модель данных, реестр модулей, состояние устройств и разбор ответов |
 | `MchoseDrivers.cs` | Модули X9 и A5/AX5 |
 | `MchoseMouseDrivers.cs` | Экспериментальные классический и новый протоколы MCHOSE |
+| `MchoseKeyboardDriver.cs` | Экспериментальный протокол клавиатур GLW |
+| `XInputSource.cs` | Стандартный источник заряда геймпадов Windows |
 | `Localization.cs` | Словарь переводов, выбор и сохранение языка |
 | `Hid.cs` | Перечисление HID и обмен через Win32 |
 | `Monitors.cs` | Выбор экранов и управление копиями виджета |

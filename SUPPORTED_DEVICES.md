@@ -5,6 +5,9 @@
 | Family / Семейство | USB VID:PID | Status / Статус |
 |---|---|---|
 | MCHOSE X9 receiver / приёмник | `3837:6045` | Tested / Проверено |
+| MCHOSE V9 Turbo+ receiver / приёмник | `3837:600A` | Experimental / Экспериментально |
+| MCHOSE GLW keyboards: G75 V2, G87 V2, K99 V3 family / клавиатуры | `3837:3033`, collection / коллекция `FF31:0074`, 65-byte reports | Experimental / Экспериментально |
+| Xbox and compatible XInput gamepads / Xbox и совместимые геймпады XInput | Windows XInput API, up to 4 slots / до 4 слотов | Protocol-tested; hardware confirmation needed / Проверено тестами; нужна проверка на оборудовании |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -25,5 +28,23 @@ Shared receiver IDs do not identify a precise model. Classic and modern modules 
 - [Classic MCHOSE protocol](https://github.com/alexfrih/mchose-linux/blob/main/PROTOCOL.md).
 - [Classic and modern protocol research](https://github.com/HifumiDaisuki01/MchoseBatteryTray/blob/main/PROTOCOL.md).
 - [BatteryHub receiver IDs](https://github.com/ferloom/Wireless-Device-Battery-Monitor/tree/main/src/drivers).
+- [XInputGetBatteryInformation](https://learn.microsoft.com/en-us/windows/win32/api/xinput/nf-xinput-xinputgetbatteryinformation).
+- [XINPUT_BATTERY_INFORMATION](https://learn.microsoft.com/en-us/windows/win32/api/xinput/ns-xinput-xinput_battery_information).
+
+## Standard controller support / Стандартная поддержка геймпадов
+
+XInput support is based on the Windows driver, not a list of brands. Xbox 360, Xbox One, Xbox Series and third-party controllers can work when exposed through XInput and their driver reports battery data. Compatibility depends on the device, driver and connection. A model name alone is not confirmation. Sony controllers in native DirectInput mode are not covered by this source.
+
+XInput reports **empty / low / medium / full**, not percentages. The widget uses short labels, and the menu shows the full state. Wired controllers show **USB powered**; unknown battery types show **Battery level unavailable**. No percentage is inferred. Low/empty states trigger the existing low-battery notification. Slot numbers identify XInput sessions, not permanent hardware identities.
+
+Поддержка XInput зависит от драйвера Windows, а не от бренда. Могут работать Xbox 360, Xbox One, Xbox Series и сторонние геймпады, если они доступны через XInput и драйвер передаёт состояние батареи. Конкретная модель, драйвер и подключение требуют проверки. Sony в обычном режиме DirectInput этим источником не поддерживаются.
+
+XInput сообщает уровни **разряжен / низкий / средний / полный**, а не проценты. На панели используются короткие подписи, в меню — полные. Для проводных устройств отображается **питание по USB**, для неизвестного типа батареи — **заряд неизвестен**. Низкий уровень вызывает уведомление. Номера слотов относятся к текущему сеансу XInput, а не к постоянному идентификатору устройства.
+
+## Keyboard polling / Опрос клавиатур
+
+GLW keyboards are automatically queried every 10 minutes to avoid repeatedly waking sleeping keyboards. Manual **Refresh** bypasses this interval. K87S is excluded because it uses a different protocol. Only the specified FF31 collection is implemented; the alternative 0001:0000 route is not claimed.
+
+Клавиатуры GLW автоматически опрашиваются раз в 10 минут, чтобы не будить их слишком часто. Ручное **Обновить** выполняет запрос сразу. K87S исключена: у неё другой протокол. Реализована только коллекция FF31; альтернативный путь 0001:0000 пока не заявлен.
 
 Only battery/status queries are implemented. No configuration, lighting, pairing, DPI, or firmware write commands are sent. / Реализованы только запросы заряда/состояния. Команды изменения настроек, подсветки, сопряжения, DPI и прошивки не отправляются.

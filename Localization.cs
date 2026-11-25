@@ -7,6 +7,8 @@ public static class L {
  public static string Language {get;private set;}
  static L(){Language="ru";}
  static readonly Dictionary<string,string> English=new Dictionary<string,string>{
+  {"Пусто","Empty"},{"Низк.","Low"},{"Сред.","Med"},{"Полн.","Full"},
+  {"Разряжен","Empty"},{"Низкий заряд","Low battery"},{"Средний заряд","Medium battery"},{"Полный заряд","Full battery"},{"Питание по USB","USB powered"},{"Заряд неизвестен","Battery level unavailable"},
   {" · экспериментально"," · experimental"},
   {"Обновить","Refresh"},{"Подключение…","Connecting…"},{"Устройства","Devices"},
   {"Заряд на панели задач","Show battery on taskbar"},{"Запускать с Windows","Start with Windows"},

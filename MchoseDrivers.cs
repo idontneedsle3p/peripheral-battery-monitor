@@ -6,8 +6,8 @@ using System.Diagnostics;
 
 public sealed class MchoseX9Driver : IBatteryDriver {
  public string Id {get{return "mchose-x9";}}
- public bool Matches(HidCollection c){return c.Vid==0x3837 && c.Pid==0x6045 && c.Page==0xFF90 && c.Usage==1 && c.Input==64 && c.Output==64;}
- public Reading Describe(HidCollection c){return new Reading("MCHOSE X9"){Kind=DeviceKind.Headset};}
+ public bool Matches(HidCollection c){return c.Vid==0x3837 && (c.Pid==0x6045 || c.Pid==0x600A) && c.Page==0xFF90 && c.Usage==1 && c.Input==64 && c.Output==64;}
+ public Reading Describe(HidCollection c){return new Reading(c.Pid==0x600A?"MCHOSE V9 Turbo+":"MCHOSE X9"){Kind=DeviceKind.Headset,Experimental=c.Pid==0x600A};}
  public Reading Read(HidCollection c,Action<string> log){var x9=Describe(c);
     try{using(var h=Hid.CreateFile(c.Path,0xC0000000,3,IntPtr.Zero,3,0x40000000,IntPtr.Zero)){
      if(h.IsInvalid){x9.State="Приёмник занят или нет доступа";return x9;}
