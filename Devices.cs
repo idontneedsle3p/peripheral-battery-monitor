@@ -9,7 +9,7 @@ public class Reading {
  public string Id,Name,State="Нет ответа",Transport="USB-приёмник · 2,4 ГГц";
  public DeviceKind Kind;public int? Percent;public bool Charging,IsStale;public DateTime? Time;
  public Reading(string name){Name=name;Kind=DeviceKind.Other;}
- public string Display {get{return Percent.HasValue?Percent+"%"+(Charging?" · зарядка":""):"—";}}
+ public string Display {get{return Percent.HasValue?Percent+"%"+(Charging?L.T(" · зарядка"):""):"—";}}
 }
 public interface IBatteryDriver {
  string Id {get;}

@@ -98,7 +98,7 @@ class TaskbarView:NativeWindow,IDisposable {
   using(var g=Graphics.FromImage(high)){
    g.Clear(Color.Transparent);g.ScaleTransform(scale*4,scale*4);g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.HighQuality;g.PixelOffsetMode=System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAlias;
    using(var font=new Font("Segoe UI Variable Small",12.5f,FontStyle.Regular,GraphicsUnit.Pixel)){
-    if(values.Length==0)using(var b=new SolidBrush(Color.Gray))g.DrawString("Нет устройств",font,b,3,5);
+    if(values.Length==0)using(var b=new SolidBrush(Color.Gray))g.DrawString(L.T("Нет устройств"),font,b,3,5);
     for(int i=0;i<Math.Min(values.Length,6);i++){
      float x=3+i*70;var r=values[i];bool stale=r.IsStale;Color color=stale?Color.FromArgb(145,145,145):r.Percent<=15?Color.FromArgb(240,102,102):light?Color.FromArgb(30,30,30):Color.FromArgb(239,242,247);
      using(var pen=new Pen(color,1.3f))using(var brush=new SolidBrush(color)){

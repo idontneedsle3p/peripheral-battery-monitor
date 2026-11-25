@@ -22,7 +22,13 @@ class Tests {
   fake.Throw=true;readings=new BatteryMonitor(fake).Poll(cols,s=>{});Check(readings.Length==3 && readings[0].State=="Ошибка чтения","driver exceptions isolated");
   fake.Throw=false;fake.Level=101;readings=new BatteryMonitor(fake).Poll(cols,s=>{});Check(!readings[0].Percent.HasValue,"invalid driver percentage rejected");
   Check(!new MchoseAx5Driver().Matches(new HidCollection{Vid=0x2023,Pid=0xF024,Feature=65,Page=1}),"non-vendor collections not queried");
-  Console.WriteLine("20 protocol and registry checks passed");return 0;
+  L.Set("en");Check(L.T("Обновить")=="Refresh","English menu translation");
+  Check(L.T("Нет ответа · последнее значение")=="No response · last known value","English stale status");
+  Check(new Reading("test"){Percent=60,Charging=true}.Display=="60% · charging","English charging state");
+  Check(L.T("MCHOSE X9")=="MCHOSE X9","device names unchanged");
+  string settings=System.IO.Path.GetTempFileName();try{L.Save(settings);L.Set("ru");L.Load(settings);Check(L.Language=="en","saved language survives reload");}finally{System.IO.File.Delete(settings);}
+  L.Set("ru");Check(L.T("Обновить")=="Обновить","switch back to Russian");Check(new Reading("test"){Percent=60,Charging=true}.Display=="60% · зарядка","Russian charging state");
+  Console.WriteLine("27 protocol, registry and localization checks passed");return 0;
  }
 }
 class FakeDriver:IBatteryDriver {
