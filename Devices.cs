@@ -7,7 +7,7 @@ using System.Diagnostics;
 public enum DeviceKind { Headset, Mouse, Keyboard, Controller, Other }
 public enum BatteryLevel { Empty, Low, Medium, Full, Wired, Unknown }
 public class Reading {
- public string Id,Name,State="Нет ответа",Transport="USB-приёмник · 2,4 ГГц";
+ public string Id,Name,PhysicalId,State="Нет ответа",Transport="USB-приёмник · 2,4 ГГц";
  public DeviceKind Kind;public int? Percent;public bool Charging,IsStale,Experimental;public DateTime? Time;
  public BatteryLevel? Level;
  public int? Steps;public int MaxSteps;
@@ -42,7 +42,7 @@ public sealed class BatteryMonitor {
    Reading current;
    try{current=driver.Read(c,log);if(current==null)throw new InvalidOperationException("Пустой ответ модуля");}
    catch(Exception e){log(driver.Id+": "+e.Message);current=driver.Describe(c);current.State="Ошибка чтения";}
-   current.Id=id;var description=driver.Describe(c);current.Kind=description.Kind;current.Experimental=description.Experimental;Reading previous;
+   current.Id=id;current.PhysicalId=current.PhysicalId??c.ContainerId;var description=driver.Describe(c);current.Kind=description.Kind;current.Experimental=description.Experimental;Reading previous;
    if(current.Percent.HasValue && (current.Percent<0 || current.Percent>100)){current.Percent=null;current.State="Некорректный заряд";}
    if(current.Steps.HasValue && (current.MaxSteps<=0 || current.Steps<0 || current.Steps>current.MaxSteps)){current.Steps=null;current.State="Некорректный заряд";}
    if(current.HasBattery)successful.Add(id);
@@ -56,9 +56,11 @@ public sealed class BatteryMonitor {
  }
 }
 public static class Devices {
+ static readonly WindowsBluetoothBatterySource windowsBluetooth=new WindowsBluetoothBatterySource();
  static readonly IBatterySource[] sources={new XInputSource(),new BluetoothBatterySource(),new LogitechBatterySource()};
  static readonly BatteryMonitor monitor=new BatteryMonitor(new MchoseX9Driver(),new MchoseAx5Driver(),new MchoseClassicDriver(),new MchoseModernDriver(),new MchoseKeyboardDriver(),new RazerBatteryDriver(),new SteelSeriesBatteryDriver(),new PlayStationBatteryDriver(),new SteelSeriesProBatteryDriver(),new CorsairVoidBatteryDriver(),new HyperXBatteryDriver(),new SteelSeriesMouseBatteryDriver(),new JabraLinkBatteryDriver(),new HyperXAlphaBatteryDriver(),new LogitechProX2BatteryDriver(),new SteelSeriesClassicBatteryDriver(),new HyperXCloudTwoBatteryDriver(),new CompxMouseBatteryDriver(),new KeychronMouseBatteryDriver(),new AulaKeyboardBatteryDriver(),new LogitechG321BatteryDriver(),new LogitechG735BatteryDriver(),new RazerBlackShark2023BatteryDriver(),new RazerNariBatteryDriver(),new Ajazz139BatteryDriver(),new Ajazz179BatteryDriver(),new DarmosharkBatteryDriver(),new AttackSharkBatteryDriver(),new SinoWealthBatteryDriver(),new WlMouseBatteryDriver(),new NzxtLiftBatteryDriver(),new EndgameGearBatteryDriver(),new StandardHidBatteryDriver());
- public static Reading[] Poll(List<HidCollection> colls,Action<string> log,bool force=false){var result=monitor.Poll(colls,log,force).ToList();foreach(var source in sources){try{result.AddRange(source.Poll(log));}catch(Exception e){log(source.GetType().Name+": "+e.Message);}}return result.ToArray();}
+ public static Reading[] MergeWindowsBluetooth(IEnumerable<Reading> primary,IEnumerable<Reading> fallback){var result=primary.ToList();foreach(var r in fallback){string physical=WindowsDeviceProperties.NormalizeContainer(r.PhysicalId);var matches=physical==null?new Reading[0]:result.Where(p=>string.Equals(physical,WindowsDeviceProperties.NormalizeContainer(p.PhysicalId),StringComparison.OrdinalIgnoreCase)).ToArray();if(matches.Any(p=>!p.IsStale && p.HasBattery))continue;if(matches.Length>0 && r.IsStale)continue;if(!r.IsStale)foreach(var match in matches)result.Remove(match);result.Add(r);}return result.ToArray();}
+ public static Reading[] Poll(List<HidCollection> colls,Action<string> log,bool force=false){var result=monitor.Poll(colls,log,force).ToList();foreach(var source in sources){try{result.AddRange(source.Poll(log));}catch(Exception e){log(source.GetType().Name+": "+e.Message);}}return MergeWindowsBluetooth(result,windowsBluetooth.Poll(log));}
  public static int? ParseX9(byte[] r){if(r!=null && r.Length>=4 && r[0]==0x55 && r[1]==0x65 && r[3]==2 && r[2]<=100)return r[2];return null;}
  public static Reading ParseMouse(byte[] r){
   if(r==null || r.Length<9 || r[0]!=0 || r[1]!=0xA1 || r[3]!=2 || r[5]!=0 || r[6]!=0x83 || r[7]>1 || r[8]>100)return null;

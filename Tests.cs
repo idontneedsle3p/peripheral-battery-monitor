@@ -267,6 +267,29 @@ class Tests {
   eg[1]=3;Check(EndgameGearBatteryDriver.Level(eg)==null,"Endgame Gear busy buffer not accepted");eg[1]=1;eg[16]=101;Check(EndgameGearBatteryDriver.Level(eg)==null,"Endgame Gear invalid percentage");
   eg[16]=0x67;eg[17]=0x33;eg[18]=0x84;eg[19]=0x19;Check(EndgameGearBatteryDriver.Model(eg)=="Endgame Gear OP1w 4k v2","Endgame Gear inner product identity");eg[17]=0;Check(EndgameGearBatteryDriver.Model(eg)==null,"Endgame Gear foreign identity rejected");
   Check(EndgameGearBatteryDriver.Level(EndgameGearBatteryDriver.Request(0xB4,0))==null,"Endgame Gear request echo excluded");
+  string btContainer="5515A0CF-38FC-424C-8F97-25F8B812FC61";
+  var btRoot=new BluetoothDeviceNode{InstanceId="BTHENUM\\DEV_001122334455\\root",ContainerId=btContainer,Name="Example headset",Connected=true,ClassOfDevice=0x0404};
+  var btService=new BluetoothDeviceNode{InstanceId="BTHENUM\\service\\audio",ContainerId=btContainer,Name="Example headset Hands-Free",Battery=65};
+  var winBt=WindowsBluetoothBatterySource.Decode(new[]{btService,btRoot});Check(winBt.Length==1 && winBt[0].Percent==65 && winBt[0].Kind==DeviceKind.Headset,"Windows Bluetooth groups service battery and connected parent");
+  Check(winBt[0].PhysicalId==btContainer.ToLowerInvariant() && !winBt[0].Charging,"Windows Bluetooth stable container without inferred charging");
+  btRoot.Connected=false;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService}).Length==0,"Windows Bluetooth cached battery after disconnect rejected");
+  btRoot.Connected=null;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService}).Length==0,"Windows Bluetooth unknown connection not treated as online");
+  btRoot.Connected=true;btService.Battery=101;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService}).Length==0,"Windows Bluetooth invalid capacity rejected");btService.Battery=0;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService})[0].Percent==0,"Windows Bluetooth explicit zero accepted");
+  btService.Battery=65;btService.HasProblem=true;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService}).Length==0,"Windows Bluetooth problem devnode excluded");btService.HasProblem=false;
+  var unrelated=new BluetoothDeviceNode{InstanceId="USB\\VID_1234",ContainerId=btContainer,Connected=true,Battery=50};Check(WindowsBluetoothBatterySource.Decode(new[]{unrelated}).Length==0,"Windows battery enumeration restricted to Bluetooth nodes");
+  Check(WindowsBluetoothBatterySource.Kind(0x0580)==DeviceKind.Mouse && WindowsBluetoothBatterySource.Kind(0x0540)==DeviceKind.Keyboard && WindowsBluetoothBatterySource.Kind(0x0508)==DeviceKind.Controller,"Bluetooth class-of-device types");
+  btRoot.HasProblem=true;btService.Connected=true;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService}).Length==0,"Problem Bluetooth parent overrides cached connected service");btRoot.HasProblem=false;btRoot.Connected=false;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService}).Length==0,"Disconnected Bluetooth parent overrides connected service copy");btService.Connected=null;
+  var btSecondRoot=new BluetoothDeviceNode{InstanceId="BTHLE\\DEV_001122334455\\root",ContainerId=btContainer,Connected=true};btRoot.Connected=false;Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btSecondRoot,btService}).Length==1,"Windows Bluetooth dual-mode connected if either root is linked");btRoot.Connected=true;
+  var btSameName=new BluetoothDeviceNode{InstanceId="BTHENUM\\DEV_667788990011\\root",ContainerId="6ee69e50-0945-4b27-95fb-491d338c70a5",Name="Example headset",Connected=true,Battery=20};Check(WindowsBluetoothBatterySource.Decode(new[]{btRoot,btService,btSameName}).Length==2,"Identical Bluetooth model names remain distinct physical devices");
+  bool winOnline=true;var winSource=new WindowsBluetoothBatterySource(()=>winOnline?new[]{btRoot,btService}:new BluetoothDeviceNode[0]);Check(!winSource.Poll(s=>{})[0].IsStale,"Windows Bluetooth discovery");winOnline=false;Check(winSource.Poll(s=>{})[0].IsStale,"Windows Bluetooth missing node retains explicit stale reading");winOnline=true;Check(!winSource.Poll(s=>{})[0].IsStale,"Windows Bluetooth reconnection restores reading");
+  var activeGatt=new Reading("BLE reading"){Id="ble:one",PhysicalId=btContainer,Percent=60};var fallback=winSource.Poll(s=>{});
+  var merged=Devices.MergeWindowsBluetooth(new[]{activeGatt},fallback);Check(merged.Length==1 && merged[0].Percent==60,"Fresh direct reading preferred over Windows cached property");
+  activeGatt.IsStale=true;merged=Devices.MergeWindowsBluetooth(new[]{activeGatt},fallback);Check(merged.Length==1 && merged[0].Percent==65,"Windows property used when direct Bluetooth read unavailable");
+  fallback[0].IsStale=true;merged=Devices.MergeWindowsBluetooth(new[]{activeGatt},fallback);Check(merged.Length==1 && merged[0].Id==activeGatt.Id,"Two stale sources do not duplicate one Bluetooth device");
+  activeGatt.PhysicalId="";Check(Devices.MergeWindowsBluetooth(new[]{activeGatt},fallback).Length==2,"Bluetooth sources never merged by name without confirmed physical identity");
+  Check(WindowsDeviceProperties.NormalizeContainer(Guid.Empty.ToString())==null && WindowsDeviceProperties.NormalizeContainer("invalid")==null,"Invalid Bluetooth container identity rejected");
+  var physicalMonitor=new BatteryMonitor(new FakeDriver());Check(physicalMonitor.Poll(new System.Collections.Generic.List<HidCollection>{new HidCollection{Path="bt-hid",Vid=123,ContainerId=btContainer}},s=>{})[0].PhysicalId==btContainer,"HID reading preserves Windows physical container for Bluetooth deduplication");
+  L.Set("en");Check(L.T("Подключено · данные Windows")=="Connected · Windows data","Windows Bluetooth status translated");L.Set("ru");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void Ajazz179Checksum(byte[] r){int sum=0;for(int i=5;i<32;i++)sum+=r[i];r[32]=(byte)sum;}

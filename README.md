@@ -27,13 +27,15 @@ The taskbar shows minimalist outline icons and battery percentages on a transpar
 
 The application runs locally and makes no network requests.
 
+Windows Bluetooth fallback can show the level Windows already maintains for connected classic/LE devices. It is labelled **Windows data**: Windows controls its refresh rate, and the shown time is when the property was read. Fresh direct HID/GATT readings take priority when a shared physical container ID is available.
+
 ### Supported devices
 
 Hardware-tested in this project: **MCHOSE X9** and **MCHOSE AX5 Pro Max**. Other additions are experimental and require confirmation on physical devices. The list below describes protocol coverage, not a guarantee for every product carrying a brand name.
 
 | Group | Current coverage |
 |---|---|
-| Standard APIs | Bluetooth LE Battery Service, descriptor-declared HID Battery Strength, XInput controllers |
+| Standard APIs | Bluetooth LE Battery Service, Windows Bluetooth battery properties, descriptor-declared HID Battery Strength, XInput controllers |
 | Logitech | HID++ 1.x / 2.x battery devices, selected G PRO X 2 firmware, G321 and G735 |
 | Razer | Compatible 91-byte battery-report mice/keyboards, Nari and BlackShark V2 Pro (2023) |
 | SteelSeries | Arctis/Nova/GameBuds headsets, selected Aerox/Prime mice |
@@ -93,6 +95,7 @@ Settings and the latest log are stored in `%LOCALAPPDATA%\MyMchose`. The selecte
 | `MchoseKeyboardDriver.cs` | Experimental GLW keyboard protocol |
 | `XInputSource.cs` | Standard Windows controller battery source |
 | `BluetoothBatterySource.cs` | Paired BLE devices with standard Battery Service |
+| `WindowsBluetoothBatterySource.cs` | Windows-maintained Bluetooth battery fallback and physical container identity |
 | `LogitechBatterySource.cs` | HID++ 2.x direct devices and receiver slots |
 | `RazerBatteryDriver.cs` | Razer battery and charging feature reports |
 | `SteelSeriesBatteryDriver.cs` | Whitelisted Arctis/Nova/GameBuds status reports |
@@ -144,13 +147,15 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 Программа работает локально и не обращается к сети.
 
+Источник Bluetooth Windows может показывать системный уровень подключённых classic/LE устройств. Он помечен как **данные Windows**: частотой обновления управляет Windows, время означает чтение системного свойства. Свежие прямые показания HID/GATT имеют приоритет при наличии общего идентификатора физического устройства.
+
 ### Устройства
 
 На оборудовании в этом проекте проверены **MCHOSE X9** и **MCHOSE AX5 Pro Max**. Остальные дополнения экспериментальные и требуют проверки владельцами устройств. Ниже перечислены протоколы, а не гарантия поддержки каждой модели указанного бренда.
 
 | Группа | Текущая поддержка |
 |---|---|
-| Стандартные API | Bluetooth LE Battery Service, HID Battery Strength из дескриптора, геймпады XInput |
+| Стандартные API | Bluetooth LE Battery Service, системные свойства батареи Bluetooth Windows, HID Battery Strength из дескриптора, геймпады XInput |
 | Logitech | Батареи HID++ 1.x / 2.x, выбранные прошивки G PRO X 2, G321 и G735 |
 | Razer | Совместимые мыши/клавиатуры с 91-байтовыми отчётами, Nari и BlackShark V2 Pro (2023) |
 | SteelSeries | Гарнитуры Arctis/Nova/GameBuds, выбранные мыши Aerox/Prime |
@@ -210,6 +215,7 @@ powershell -ExecutionPolicy Bypass -File .\test.ps1
 | `MchoseKeyboardDriver.cs` | Экспериментальный протокол клавиатур GLW |
 | `XInputSource.cs` | Стандартный источник заряда геймпадов Windows |
 | `BluetoothBatterySource.cs` | Сопряжённые BLE-устройства с Battery Service |
+| `WindowsBluetoothBatterySource.cs` | Системный заряд Bluetooth Windows и идентификаторы физических устройств |
 | `LogitechBatterySource.cs` | HID++ 2.x и слоты приёмников |
 | `RazerBatteryDriver.cs` | Feature-отчёты батареи и зарядки Razer |
 | `SteelSeriesBatteryDriver.cs` | Разрешённые отчёты Arctis/Nova/GameBuds |

@@ -21,7 +21,7 @@ public static class L {
   {"Ошибка: ","Error: "},{"Peripheral Battery Monitor: нет устройств","Peripheral Battery Monitor: no devices"},
   {"Поддерживаемые устройства не найдены","No supported devices found"},{" · старое значение"," · last known value"},
   {"Последний замер: ","Last reading: "},{"Нет замеров","No readings yet"},{"Нет устройств","No devices"},
-  {"Нет ответа","No response"},{"Подключена","Connected"},{"Подключено","Connected"},
+  {"Нет ответа","No response"},{"Подключена","Connected"},{"Подключено","Connected"},{"Подключено · данные Windows","Connected · Windows data"},
   {"Нет ответа · последнее значение","No response · last known value"},{"Отключено","Disconnected"},
   {"Приёмник занят или нет доступа","Receiver busy or access denied"},{"Ошибка запроса","Request failed"},
   {"Ошибка чтения","Read failed"},{"Некорректный заряд","Invalid battery level"},

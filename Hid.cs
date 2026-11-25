@@ -7,7 +7,7 @@ using System.Threading;
 
 public class HidCollection {
  public HidBatteryFeature BatteryFeature,BatteryInput;
- public string Path, Product; public ushort Vid,Pid,Page,Usage,Input,Output,Feature;
+ public string Path, Product,ContainerId; public ushort Vid,Pid,Page,Usage,Input,Output,Feature;
  public override string ToString(){return string.Format("{0:X4}:{1:X4} {2} page={3:X4} usage={4:X4} in={5} out={6} feature={7}",Vid,Pid,Product,Page,Usage,Input,Output,Feature);}
 }
 public static class Hid {
@@ -19,6 +19,7 @@ public static class Hid {
  [DllImport("setupapi.dll",CharSet=CharSet.Unicode)] static extern IntPtr SetupDiGetClassDevs(ref Guid g,IntPtr e,IntPtr p,uint f);
  [DllImport("setupapi.dll")] static extern bool SetupDiEnumDeviceInterfaces(IntPtr d,IntPtr dev,ref Guid g,uint i,ref Interface data);
  [DllImport("setupapi.dll",CharSet=CharSet.Unicode)] static extern bool SetupDiGetDeviceInterfaceDetail(IntPtr d,ref Interface data,IntPtr detail,uint size,out uint needed,IntPtr dev);
+ [DllImport("setupapi.dll",CharSet=CharSet.Unicode,EntryPoint="SetupDiGetDeviceInterfaceDetailW")] static extern bool GetInterfaceDetailNode(IntPtr d,ref Interface data,IntPtr detail,uint size,out uint needed,ref WindowsDeviceProperties.DeviceInfo dev);
  [DllImport("setupapi.dll")] static extern bool SetupDiDestroyDeviceInfoList(IntPtr d);
  [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] public static extern SafeFileHandle CreateFile(string p,uint access,uint share,IntPtr sec,uint disposition,uint flags,IntPtr template);
  [DllImport("hid.dll")] [return: MarshalAs(UnmanagedType.U1)] static extern bool HidD_GetAttributes(SafeFileHandle h,ref Attributes a);
@@ -57,13 +58,14 @@ public static class Hid {
    uint need;SetupDiGetDeviceInterfaceDetail(set,ref data,IntPtr.Zero,0,out need,IntPtr.Zero);if(need==0)continue;
    IntPtr detail=Marshal.AllocHGlobal((int)need);
    try {Marshal.WriteInt32(detail,IntPtr.Size==8?8:6);
-    if(!SetupDiGetDeviceInterfaceDetail(set,ref data,detail,need,out need,IntPtr.Zero))continue;
+    var node=new WindowsDeviceProperties.DeviceInfo{Size=(uint)Marshal.SizeOf(typeof(WindowsDeviceProperties.DeviceInfo))};
+    if(!GetInterfaceDetailNode(set,ref data,detail,need,out need,ref node))continue;
     string path=Marshal.PtrToStringUni(IntPtr.Add(detail,4));
     using(var h=CreateFile(path,0,3,IntPtr.Zero,3,0,IntPtr.Zero)){
      if(h.IsInvalid)continue;var a=new Attributes();a.Size=Marshal.SizeOf(typeof(Attributes));if(!HidD_GetAttributes(h,ref a))continue;
      IntPtr pp;if(!HidD_GetPreparsedData(h,out pp))continue;
      try{Caps c;if(HidP_GetCaps(pp,out c)<0)continue;byte[] name=new byte[512];HidD_GetProductString(h,name,name.Length);
-      result.Add(new HidCollection{Path=path,Product=Encoding.Unicode.GetString(name).TrimEnd('\0'),Vid=a.Vid,Pid=a.Pid,Page=c.Page,Usage=c.Usage,Input=c.Input,Output=c.Output,Feature=c.Feature,BatteryFeature=FindBatteryFeature(pp,c.FV),BatteryInput=FindBatteryFeature(pp,c.IV,0)});
+      result.Add(new HidCollection{Path=path,ContainerId=WindowsDeviceProperties.ContainerId(set,ref node),Product=Encoding.Unicode.GetString(name).TrimEnd('\0'),Vid=a.Vid,Pid=a.Pid,Page=c.Page,Usage=c.Usage,Input=c.Input,Output=c.Output,Feature=c.Feature,BatteryFeature=FindBatteryFeature(pp,c.FV),BatteryInput=FindBatteryFeature(pp,c.IV,0)});
      }finally{HidD_FreePreparsedData(pp);}
     }
    }finally{Marshal.FreeHGlobal(detail);}

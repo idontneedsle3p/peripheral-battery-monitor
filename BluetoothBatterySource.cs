@@ -19,9 +19,9 @@ public sealed class BluetoothBatterySource:IBatterySource {
   var watch=Stopwatch.StartNew();try{while(operation.Status==AsyncStatus.Started && watch.ElapsedMilliseconds<timeout)Thread.Sleep(15);if(operation.Status==AsyncStatus.Started){operation.Cancel();throw new TimeoutException("Bluetooth operation timed out");}return operation.GetResults();}finally{try{operation.Close();}catch{}}
  }
  public static Reading Parse(string id,string name,byte[] value){if(value==null || value.Length!=1 || value[0]>100)return null;return new Reading(string.IsNullOrWhiteSpace(name)?"Bluetooth LE device":name){Id="ble:"+id,Kind=GuessKind(name),Percent=value[0],Time=DateTime.Now,State="Подключено",Transport="Bluetooth LE",Experimental=true};}
- static DeviceKind GuessKind(string name){string n=(name??"").ToLowerInvariant();if(n.Contains("mouse") || n.Contains("мыш"))return DeviceKind.Mouse;if(n.Contains("keyboard") || n.Contains("клавиат"))return DeviceKind.Keyboard;if(n.Contains("head") || n.Contains("buds") || n.Contains("науш"))return DeviceKind.Headset;return DeviceKind.Other;}
+ public static DeviceKind GuessKind(string name){string n=(name??"").ToLowerInvariant();if(n.Contains("mouse") || n.Contains("мыш"))return DeviceKind.Mouse;if(n.Contains("keyboard") || n.Contains("клавиат"))return DeviceKind.Keyboard;if(n.Contains("head") || n.Contains("buds") || n.Contains("науш"))return DeviceKind.Headset;return DeviceKind.Other;}
  IEnumerable<Reading> ReadPaired(Action<string> log){
-  var result=new List<Reading>();var devices=Wait(DeviceInformation.FindAllAsync(BluetoothLEDevice.GetDeviceSelectorFromPairingState(true)),2000);log("Bluetooth LE paired devices: "+devices.Count);var total=Stopwatch.StartNew();
+  var result=new List<Reading>();var devices=Wait(DeviceInformation.FindAllAsync(BluetoothLEDevice.GetDeviceSelectorFromPairingState(true),new[]{"System.Devices.ContainerId","System.Devices.Aep.ContainerId"}),2000);log("Bluetooth LE paired devices: "+devices.Count);var total=Stopwatch.StartNew();
   for(int visited=0;visited<devices.Count && total.ElapsedMilliseconds<12000;visited++){
    int index=cursor++%devices.Count;var info=devices[index];
    try{using(var device=Wait(BluetoothLEDevice.FromIdAsync(info.Id),1000)){
@@ -32,7 +32,7 @@ public sealed class BluetoothBatterySource:IBatterySource {
      foreach(var ch in chars.Characteristics){if((ch.CharacteristicProperties&GattCharacteristicProperties.Read)==0)continue;
       var response=Wait(ch.ReadValueAsync(BluetoothCacheMode.Uncached),1200);if(response.Status!=GattCommunicationStatus.Success || response.Value==null || response.Value.Length!=1)continue;
       byte value;using(var data=DataReader.FromBuffer(response.Value))value=data.ReadByte();
-      var reading=Parse(info.Id+":"+service.AttributeHandle+":"+ch.AttributeHandle,info.Name+(services.Services.Count>1?" #"+service.AttributeHandle:""),new[]{value});if(reading!=null)result.Add(reading);
+      var reading=Parse(info.Id+":"+service.AttributeHandle+":"+ch.AttributeHandle,info.Name+(services.Services.Count>1?" #"+service.AttributeHandle:""),new[]{value});if(reading!=null){object container;foreach(string property in new[]{"System.Devices.ContainerId","System.Devices.Aep.ContainerId"})if(info.Properties.TryGetValue(property,out container) && container!=null){reading.PhysicalId=WindowsDeviceProperties.NormalizeContainer(container.ToString());if(reading.PhysicalId!=null)break;}result.Add(reading);}
      }
     }
    }}catch(Exception e){log("Bluetooth "+info.Name+": "+e.Message);}
