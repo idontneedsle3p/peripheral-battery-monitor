@@ -216,8 +216,36 @@ class Tests {
   nari[11]=9;nari[14]=255;var nc=RazerNariBatteryDriver.Parse(nari);Check(nc.Charging && !nc.Percent.HasValue && nc.Level==BatteryLevel.Unknown,"Nari charging suppresses unrelated level byte");
   nari[12]=0;nari[13]=0;Check(RazerNariBatteryDriver.Parse(nari)==null,"Nari powered off excluded");nari[12]=0x10;nari[13]=0x80;nari[1]=1;Check(RazerNariBatteryDriver.Parse(nari)==null,"Nari stale dongle copy excluded");
   nari[1]=15;nari[11]=255;Check(RazerNariBatteryDriver.Parse(nari)==null,"Nari unknown power state excluded");
+  var aj139=new byte[65];aj139[1]=0xAA;aj139[2]=0x30;aj139[3]=0xA5;aj139[9]=76;aj139[10]=1;
+  Check(Ajazz139BatteryDriver.Parse(aj139,false,false).Percent==76 && Ajazz139BatteryDriver.Parse(aj139,false,false).Charging,"AJ139 unnumbered Windows report");
+  aj139[9]=0;Check(Ajazz139BatteryDriver.Parse(aj139,false,false)==null && Ajazz139BatteryDriver.Parse(aj139,false,true).Percent==0,"AJ139 receiver zero means no link, cable zero valid");
+  Check(Ajazz139BatteryDriver.Parse(Ajazz139BatteryDriver.Request(false),false,false)==null,"AJ139 request echo rejected");
+  var ajf=new byte[64];Array.Copy(new byte[]{0xF0,0x30,0xA5,0x95,0x2E,1,1,1,37,1},ajf,10);Check(Ajazz139BatteryDriver.Parse(ajf,true,false).Percent==37,"AJ139 64-byte receiver reply");
+  ajf[3]=0x0B;Check(Ajazz139BatteryDriver.Parse(ajf,true,false)==null,"AJ139 F0 echoed header rejected");ajf[3]=0x95;ajf[9]=2;Check(Ajazz139BatteryDriver.Parse(ajf,true,false)==null,"AJ139 invalid F0 power state");
+  Check(!new Ajazz139BatteryDriver().Matches(new HidCollection{Vid=0xA8A4,Pid=0x2255,Page=0xFF01,Usage=0x10,Input=64,Output=64}),"AJ139 cable requires unnumbered 65-byte report");
+  var aj179=new byte[33];Array.Copy(new byte[]{0,0x10,0,1,0x0B,0x4E,0x36,0x32,0x35,0,0,0x11,1,0,75,1},aj179,16);Ajazz179Checksum(aj179);
+  Check(Ajazz179BatteryDriver.Parse(aj179).Percent==75,"AJ179 captured frame with report zero");
+  aj179[13]=1;Ajazz179Checksum(aj179);Check(Ajazz179BatteryDriver.Parse(aj179).Charging,"AJ179 charging state");
+  aj179[32]^=1;Check(Ajazz179BatteryDriver.Parse(aj179)==null,"AJ179 checksum failure");Ajazz179Checksum(aj179);aj179[15]=0;Ajazz179Checksum(aj179);Check(Ajazz179BatteryDriver.Parse(aj179)==null,"AJ179 cached level of absent mouse rejected");
+  aj179[15]=1;aj179[14]=101;Ajazz179Checksum(aj179);Check(Ajazz179BatteryDriver.Parse(aj179)==null,"AJ179 invalid percentage");
+  Check(Ajazz179BatteryDriver.Parse(Ajazz179BatteryDriver.Request())==null,"AJ179 request echo rejected");
+  var bond=new byte[]{0x51,3,6,0x8A,0x24,0x18,0xFF,1,0,0,0,0};Check(DarmosharkBatteryDriver.Linked(bond,0xFF18),"Darmoshark bonded M3S link");Check(!DarmosharkBatteryDriver.Linked(bond,0xFF12),"Darmoshark other mouse identity rejected");
+  bond[7]=0;Check(!DarmosharkBatteryDriver.Linked(bond,0xFF18),"Darmoshark absent link rejected");
+  var dmid=new byte[]{0x51,6,1,0,0x8A,0x24,0x12,0xFF,9,2,0,76};Check(DarmosharkBatteryDriver.Level(dmid,0xFF12)==76,"Darmoshark identity battery");
+  dmid[1]=3;Check(DarmosharkBatteryDriver.Level(dmid,0xFF12)==null,"Darmoshark previous opcode rejected");dmid[1]=6;dmid[11]=101;Check(DarmosharkBatteryDriver.Level(dmid,0xFF12)==null,"Darmoshark invalid battery");
+  Check(DarmosharkBatteryDriver.NoLink(new byte[]{0x54,0xE4,2,0}) && !DarmosharkBatteryDriver.NoLink(new byte[]{0x54,0xE4,1,0}),"Darmoshark no-link acknowledgement");
+  var shark=new byte[]{3,0x55,0x40,1,75};var sr=AttackSharkBatteryDriver.Parse(shark,0xFA60);Check(sr.Name=="Attack Shark X11" && sr.Percent==75 && !sr.Charging,"Attack Shark passive battery frame");
+  shark[3]=3;Check(AttackSharkBatteryDriver.Parse(shark,0xFA60).Charging,"Attack Shark charging frame");shark[3]=2;Check(!AttackSharkBatteryDriver.Parse(shark,0xFA60).Charging && AttackSharkBatteryDriver.Parse(shark,0xFA60).Percent==75,"Attack Shark external power is not charging");
+  Check(AttackSharkBatteryDriver.Parse(shark,0xFA65).Percent==100,"KP 8K fully charged state");
+  shark[1]=0x10;shark[3]=1;shark[4]=9;sr=AttackSharkBatteryDriver.Parse(shark,0xFA60);Check(sr.Steps==9 && sr.MaxSteps==10 && !sr.Percent.HasValue,"X6/R1 native battery steps");
+  Check(AttackSharkBatteryDriver.Parse(shark,0xFA65).Percent==9,"KP 8K does not inherit X6 scale");shark[4]=11;Check(AttackSharkBatteryDriver.Parse(shark,0xFA60)==null,"X6 invalid step excluded");
+  Check(AttackSharkBatteryDriver.Model(0xFA65,0x50)=="Delux M900 Pro" && AttackSharkBatteryDriver.Model(0xFA65,0x73)=="Inphic IN10R MAX","KP receiver model table");
+  var reconnect=new byte[]{3,0x55,0x40,1,100};Check(AttackSharkBatteryDriver.NeedsConfirmation(reconnect),"Attack Shark unconfirmed 100 percent reconnect excluded");Check(AttackSharkBatteryDriver.Same(reconnect,(byte[])reconnect.Clone()),"Attack Shark consecutive frame confirmation");
+  reconnect[2]=0x50;Check(AttackSharkBatteryDriver.Parse(reconnect,0xFA60)==null,"Attack Shark configuration ACK excluded");
+  Check(!new AttackSharkBatteryDriver().Matches(new HidCollection{Vid=0x1D57,Pid=0xFA60,Page=1,Input=5,Path="hid&mi_02"}),"Attack Shark ordinary input collection excluded");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
+ static void Ajazz179Checksum(byte[] r){int sum=0;for(int i=5;i<32;i++)sum+=r[i];r[32]=(byte)sum;}
  static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}
  static void ModernChecksum(byte[] r){r[8+r[3]]=0;for(int i=2;i<8+r[3];i++)r[8+r[3]]^=r[i];}
  static byte[] SonyReport(byte id,int length,int offset,byte status){var r=new byte[length];r[0]=id;r[offset]=status;if(length==78){uint crc=PlayStationBatteryDriver.BluetoothCrc(r);for(int i=0;i<4;i++)r[74+i]=(byte)(crc>>(8*i));}return r;}

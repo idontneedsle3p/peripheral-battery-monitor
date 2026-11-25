@@ -42,6 +42,7 @@ Hardware-tested in this project: **MCHOSE X9** and **MCHOSE AX5 Pro Max**. Other
 | Sony | Native DualShock 4, DualSense and DualSense Edge input reports |
 | Jabra | Headset battery queries through listed Link 390 receivers |
 | CompX mice | Selected Pulsar, Kysona, VXE, LAMZU, Zaopin and ATK receivers |
+| Other mice | Selected AJAZZ, VGN Dragonfly 3 Pro, Darmoshark M3/M3S, Attack Shark, Delux M900 Pro and Inphic receivers |
 | Keychron | M1/M2/M3/M6/M7 families through the listed 1K Link receivers |
 | AULA / BY | Selected wireless keyboard receivers using the 20-byte battery protocol |
 | MCHOSE | X9, V9 Turbo+, A5/AX5, selected classic/modern mice and GLW keyboards |
@@ -155,6 +156,7 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 | Sony | Штатные input-отчёты DualShock 4, DualSense и DualSense Edge |
 | Jabra | Заряд гарнитуры через перечисленные приёмники Link 390 |
 | Мыши CompX | Выбранные приёмники Pulsar, Kysona, VXE, LAMZU, Zaopin и ATK |
+| Другие мыши | Выбранные AJAZZ, VGN Dragonfly 3 Pro, Darmoshark M3/M3S, Attack Shark, Delux M900 Pro и Inphic |
 | Keychron | Семейства M1/M2/M3/M6/M7 через перечисленные приёмники Link 1K |
 | AULA / BY | Выбранные приёмники клавиатур с 20-байтовым протоколом батареи |
 | MCHOSE | X9, V9 Turbo+, A5/AX5, выбранные классические/новые мыши и клавиатуры GLW |

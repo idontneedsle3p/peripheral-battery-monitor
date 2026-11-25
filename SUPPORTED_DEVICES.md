@@ -39,6 +39,12 @@
 | Logitech G735 | `046D:0AD8`; `FF03:0001`, 271-byte input/output | Experimental / Экспериментально |
 | Razer Nari | `1532:051C`; `FF00:0001`, feature `FF` | Experimental; reported coarse percentage / Экспериментально; грубый процент устройства |
 | Razer BlackShark V2 Pro (2023) | `1532:0555`; `FF00`, 64-byte input/output | Experimental; 2023 model only / Экспериментально; только модель 2023 |
+| AJAZZ AJ139-family / семейство AJ139; VGN Dragonfly 3 Pro | `A8A5:2255` receiver / приёмник, `A8A4:2255` cable / кабель, `391D:1A03` VGN receiver; `FF01:0010`, 65-byte Windows reports; `A8A5` also 64-byte `F0` protocol | Experimental; AJAZZ ID is shared / Экспериментально; общий ID AJAZZ |
+| AJAZZ AJ159P / AJ179-family | `249A:5C2F`, interface `02`, `0001:0000`, 33-byte input/output | Experimental; shared receiver / Экспериментально; общий приёмник |
+| Darmoshark M3 / M3S | `248A:FF30` / `FF31`, interface `01`, `008C:0001`, feature `51` | Experimental / Экспериментально |
+| Attack Shark X11 / X3 Max / V3 Pro / V6 / X6 / R1; IO Nova SE | `1D57:FA60` receiver; model marker in report `03`, interface `02`, page `000A`, 5-byte input | Experimental; passive reads / Экспериментально; пассивное чтение |
+| Delux M900 Pro / Inphic IN10R MAX / IN10 MAX | `1D57:FA65` KP 8K receiver; model marker, same passive collection | Experimental / Экспериментально |
+| IO Nova SE cable / кабель | `1D57:2015`, same passive collection / та же пассивная коллекция | Experimental / Экспериментально |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -166,3 +172,18 @@ Nari принимает только свежий feature-статус `FF` с �
 BlackShark V2 Pro здесь означает только приёмник `0555` модели 2023. Чтение батареи и зарядки временно включает маршрутизацию remote mode и завершает её даже после ошибки. Посторонние статусы отбрасываются, фоновый запрос ограничен одним разом в две минуты. Модели 2020 и V3 используют другие протоколы и пока не включены. При отсутствии ответа последнее показание явно помечается устаревшим. Все четыре модуля экспериментальные до проверки на оборудовании.
 
 References / Источники: [G321 protocol](https://github.com/gleyssonsc/g321-studio/blob/main/LightspeedConnection.cs), [G735 protocol](https://github.com/symNistaken/TaskbarVitals/blob/main/src/drivers/logitech_g735.cpp), [BlackShark 2023 protocol](https://github.com/matej-basic/blackshark-battery), [Nari capture](https://github.com/Modzeleczek/RazerNariBatteryLevel).
+## Additional mouse protocols / Дополнительные протоколы мышей
+
+AJ139-family requests use only the documented battery read. Windows unnumbered reports include report ID zero (65 bytes); the alternate 64-byte `F0` path is restricted to `A8A5:2255`. Replies must have the expected command/header and a valid battery range. Receiver zero levels mean unavailable, while a cable can report zero. Shared AJAZZ IDs keep a generic family name. VGN is limited to the listed receiver ID. The AJ179-family module validates its checksum and link flag, rejecting the cached battery of an absent mouse. A successful reply with the mouse linked is required before a new entry appears.
+
+Darmoshark first reads the bonded mouse identity/link, then reads its battery, checking the opcode, inner VID/PID and percentage. No-link acknowledgements stop the query. It does not report charging, and cable variants are not implemented here.
+
+Attack Shark / KP 8K / IO Nova support is passive: no output reports or configuration requests are sent. The exact listed status collection is read for up to 5.5 seconds. Consecutive identical frames confirm a reading; a single reconnect frame claiming 100% on battery is rejected. Model markers choose the name. X6/R1 levels are shown as `n/10`, preserving their native resolution. `FA60` external power does not imply charging; `FA65` state 2 means fully charged. Battery values can be approximate or frozen while on power. All models in this section need hardware confirmation in this project.
+
+AJ139 использует только документированное чтение батареи. Для ненумерованных отчётов Windows передаёт нулевой report ID (65 байт); альтернативный 64-байтовый запрос `F0` ограничен `A8A5:2255`. Проверяются команда, заголовок и диапазон заряда. Ноль от приёмника означает отсутствие данных, по кабелю нулевой заряд допустим. Общий ID AJAZZ сохраняет название семейства; VGN ограничен указанным ID. Модуль AJ179 проверяет контрольную сумму и флаг связи, отбрасывая последнее значение отсутствующей мыши. Новая запись появляется только после ответа с подтверждённой связью.
+
+Darmoshark сначала читает привязку и связь с мышью, затем заряд. Проверяются команда, внутренние VID/PID и проценты. Ответ об отсутствии связи прекращает запрос. Зарядка не определяется; кабельные варианты этот модуль не включает.
+
+Attack Shark / KP 8K / IO Nova читаются пассивно: запросы и команды настройки не отправляются. Читается только указанная коллекция статуса, ожидание ограничено 5,5 секунды. Два одинаковых последовательных кадра подтверждают показание; одиночный кадр переподключения со значением 100% от батареи отбрасывается. Название выбирается по маркеру модели. X6/R1 показывает штатные ступени `n/10`. Для `FA60` внешнее питание не означает зарядку; состояние 2 у `FA65` означает полный заряд. При внешнем питании значение может быть приблизительным или временно не меняться. Всем моделям этого раздела нужна аппаратная проверка в этом проекте.
+
+References / Источники: [AJ139 protocol](https://github.com/werquess/ajazz-aj139-macos/blob/main/PROTOCOL.md), [AJ179 capture research](https://github.com/HeyOkay/HaloBattery/blob/main/providers/ajazz.py), [Darmoshark M3 protocol](https://github.com/Barba2k2/darmoshark-m3-configurator/blob/main/PROTOCOL.md), [Attack Shark passive protocol](https://github.com/daeoxide/attackshark-battery-windows), [Delux M900 research](https://github.com/AeonArcHQ/omarchy-delux-m900/blob/main/docs/re/findings.md).
