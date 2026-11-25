@@ -1,6 +1,7 @@
 using System;
 class Tests {
- static void Check(bool b,string name){if(!b)throw new Exception(name);}
+ static int checks;
+ static void Check(bool b,string name){checks++;if(!b)throw new Exception(name);}
  static int Main(){
   Check(Devices.ParseX9(new byte[]{0x55,0x65,40,2})==40,"X9 real reply");
   Check(!Devices.ParseX9(new byte[]{0x55,0x65,1,0}).HasValue,"X9 echo");
@@ -28,8 +29,26 @@ class Tests {
   Check(L.T("MCHOSE X9")=="MCHOSE X9","device names unchanged");
   string settings=System.IO.Path.GetTempFileName();try{L.Save(settings);L.Set("ru");L.Load(settings);Check(L.Language=="en","saved language survives reload");}finally{System.IO.File.Delete(settings);}
   L.Set("ru");Check(L.T("Обновить")=="Обновить","switch back to Russian");Check(new Reading("test"){Percent=60,Charging=true}.Display=="60% · зарядка","Russian charging state");
-  Console.WriteLine("27 protocol, registry and localization checks passed");return 0;
+  var classic=new MchoseClassicDriver();Check(classic.Matches(new HidCollection{Vid=0x5253,Pid=0x1020,Page=0xFF01,Usage=1,Feature=65}),"classic receiver matched");
+  Check(!classic.Matches(new HidCollection{Vid=0x5253,Pid=0x9999,Page=0xFF01,Usage=1,Feature=65}),"unknown classic PID excluded");
+  byte[] status=MchoseClassicDriver.Request(0x12,65);Check(MchoseClassicDriver.Parse(status,0x5253)==null,"classic request echo rejected");
+  status[2]=(byte)(0x53^255);status[3]=(byte)(0x52^255);status[10]=(byte)(9^255);status[11]=(byte)(7^255);status[12]=255;
+  Check(MchoseClassicDriver.Parse(status,0x5253).Percent==7,"classic low percentage not multiplied");
+  status[12]=254;Check(MchoseClassicDriver.Parse(status,0x5253).Charging,"classic charging");status[11]=(byte)(101^255);Check(MchoseClassicDriver.Parse(status,0x5253)==null,"classic invalid percentage");
+  status[11]=255;Check(MchoseClassicDriver.Parse(status,0x3837)==null,"classic wrong identity");Check(MchoseClassicDriver.Parse(new byte[4],0x5253)==null,"classic truncated reply");
+  var modern=new MchoseModernDriver();Check(modern.Matches(new HidCollection{Vid=0x3837,Pid=0x1014,Page=0xFF01,Usage=1,Input=64,Output=64}),"modern receiver matched");
+  Check(!modern.Matches(new HidCollection{Vid=0x3837,Pid=0x100C,Page=0xFF01,Usage=1,Input=64,Output=64}),"classic and modern IDs do not overlap");
+  byte[] frame=MchoseModernDriver.Request();Check(frame[8]==8 && MchoseModernDriver.Parse(frame)==null,"modern request and echo rejection");
+  frame[3]=14;frame[8]=0x37;frame[9]=0x38;frame[18]=2;frame[19]=1;frame[20]=83;ModernChecksum(frame);
+  Check(MchoseModernDriver.Parse(frame).Percent==83 && MchoseModernDriver.Parse(frame).Charging,"modern battery and charging offsets");
+  frame[22]^=1;Check(MchoseModernDriver.Parse(frame)==null,"modern checksum mismatch");ModernChecksum(frame);
+  frame[3]=64;Check(MchoseModernDriver.Parse(frame)==null,"modern oversized length");frame[3]=14;frame[18]=0;ModernChecksum(frame);Check(MchoseModernDriver.Parse(frame)==null,"modern unlinked receiver not zero battery");
+  frame[18]=2;frame[20]=101;ModernChecksum(frame);Check(MchoseModernDriver.Parse(frame)==null,"modern invalid percentage");
+  frame[20]=50;frame[7]=1;ModernChecksum(frame);Check(MchoseModernDriver.Parse(frame)==null,"modern sequence mismatch");
+  var ax5=new MchoseAx5Driver();Check(ax5.Matches(new HidCollection{Vid=0x2023,Pid=0xF013,Page=0xFFFF,Feature=65}),"A5 shared receiver matched");Check(!ax5.Matches(new HidCollection{Vid=0x2023,Pid=0xF023,Page=0xFFFF,Feature=65}),"AX5 bootloader excluded");
+  Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
+ static void ModernChecksum(byte[] r){r[8+r[3]]=0;for(int i=2;i<8+r[3];i++)r[8+r[3]]^=r[i];}
 }
 class FakeDriver:IBatteryDriver {
  public bool Fail,Throw;public int Calls,Level=50;

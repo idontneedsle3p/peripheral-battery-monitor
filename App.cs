@@ -47,7 +47,7 @@ class TrayApplication:ApplicationContext {
   using(var key=Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run")){startItem.Checked=key!=null && key.GetValue("MyMchose")!=null;}
   startItem.CheckedChanged+=(s,e)=>{try{using(var key=Registry.CurrentUser.CreateSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Run")){if(startItem.Checked)key.SetValue("MyMchose","\""+Application.ExecutablePath+"\" --tray");else key.DeleteValue("MyMchose",false);}}catch(Exception ex){MessageBox.Show(ex.Message,L.T("Автозапуск"));}};
   logItem=(ToolStripMenuItem)menu.Items.Add(L.T("Открыть журнал"),null,(s,e)=>{string p=Path.Combine(Program.Data,"status.log");if(File.Exists(p))System.Diagnostics.Process.Start("notepad.exe",p);});menu.Items.Add(new ToolStripSeparator());exitItem=(ToolStripMenuItem)menu.Items.Add(L.T("Выход"),null,(s,e)=>{ExitThread();});
-  tray[0]=new NotifyIcon{Icon=CommonIcon(),Visible=true,Text="YourBattery",ContextMenuStrip=menu};tray[0].DoubleClick+=(s,e)=>ShowMenu();
+  tray[0]=new NotifyIcon{Icon=CommonIcon(),Visible=true,Text="Peripheral Battery Monitor",ContextMenuStrip=menu};tray[0].DoubleClick+=(s,e)=>ShowMenu();
   strip=new Strip(()=>ShowMenu(),menu);widgetItem.CheckedChanged+=(s,e)=>{strip.Visible=widgetItem.Checked;SaveWidget();};
   LoadWidget();
   monitorItem=new ToolStripMenuItem(L.T("Мониторы"));menu.Items.Insert(5,monitorItem);monitorItem.DropDownOpening+=(s,e)=>BuildMonitorMenu();BuildMonitorMenu();
@@ -110,13 +110,13 @@ class TrayApplication:ApplicationContext {
   finally{busy=false;if(!quitting){refresh.Enabled=true;UpdateStatus();}}
  }
  void Render(){
-  string tip=values.Length==0?L.T("YourBattery: нет устройств"):string.Join("\n",values.Select(r=>r.Name+": "+r.Display+(r.IsStale?" *":"")));tray[0].Text=tip.Length>63?tip.Substring(0,60)+"…":tip;
+  string tip=values.Length==0?L.T("Peripheral Battery Monitor: нет устройств"):string.Join("\n",values.Select(r=>r.Name+": "+r.Display+(r.IsStale?" *":"")));tray[0].Text=tip.Length>63?tip.Substring(0,60)+"…":tip;
   BuildDeviceMenu();strip.UpdateValues(values);
  }
  void BuildDeviceMenu(){
   while(devicesItem.DropDownItems.Count>0){var old=devicesItem.DropDownItems[0];devicesItem.DropDownItems.Remove(old);old.Dispose();}
   if(values.Length==0)devicesItem.DropDownItems.Add(new ToolStripMenuItem(L.T("Поддерживаемые устройства не найдены")){Enabled=false});
-  foreach(var r in values){var item=new ToolStripMenuItem(r.Name+" · "+r.Display+(r.IsStale?L.T(" · старое значение"):""));
+  foreach(var r in values){var item=new ToolStripMenuItem(r.Name+" · "+r.Display+(r.Experimental?L.T(" · экспериментально"):"")+(r.IsStale?L.T(" · старое значение"):""));
    item.DropDownItems.Add(new ToolStripMenuItem(L.T(r.State)){Enabled=false});item.DropDownItems.Add(new ToolStripMenuItem(L.T(r.Transport)){Enabled=false});
    item.DropDownItems.Add(new ToolStripMenuItem(r.Time.HasValue?L.T("Последний замер: ")+r.Time.Value.ToString("HH:mm:ss"):L.T("Нет замеров")){Enabled=false});devicesItem.DropDownItems.Add(item);}
  }

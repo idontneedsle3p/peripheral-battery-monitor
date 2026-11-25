@@ -1,10 +1,10 @@
-# YourBattery
+# Peripheral Battery Monitor
 
 [English](#english) · [Русский](#русский)
 
 ## English
 
-An extensible wireless device battery monitor for Windows 10/11 x64.
+Wireless mouse, keyboard and headset battery levels on the Windows taskbar. An extensible monitor for Windows 10/11 x64; see the support list for currently implemented devices.
 
 The first stage of generalization is implemented: a driver registry, device discovery, a dynamic device list in the tray menu, and a taskbar widget. **MCHOSE X9** and **MCHOSE AX5 Pro Max** have been tested on hardware. An extensible architecture does not mean every device is supported. Bluetooth Battery Service is not implemented yet.
 
@@ -29,6 +29,8 @@ The application runs locally and makes no network requests.
 
 ### Supported devices
 
+Expanded MCHOSE support includes A5/AX5 variants, classic L7/M7/A7-family receivers, and newer K7 V2-family receivers. New additions are **experimental**, not hardware-verified in this project. See the complete [device and USB ID matrix](SUPPORTED_DEVICES.md).
+
 | Device | Connection | VID:PID | Status |
 |---|---|---|---|
 | MCHOSE X9 | 2.4 GHz USB receiver | `3837:6045` | Tested on hardware |
@@ -43,13 +45,13 @@ Requires Windows x64 and .NET Framework 4.x with the `csc.exe` compiler. Rust, V
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
-.\MyMchose.exe
+.\PeripheralBatteryMonitor.exe
 ```
 
-The build produces a portable `MyMchose.exe`. The existing `--tray` argument is also accepted:
+The build produces a portable `PeripheralBatteryMonitor.exe`. The existing `--tray` argument is also accepted:
 
 ```powershell
-.\MyMchose.exe --tray
+.\PeripheralBatteryMonitor.exe --tray
 ```
 
 The application always starts in the tray, without a main window. Right-click its tray icon to access **Devices**, **Refresh**, **Monitors**, **Language / Язык**, **Show battery on taskbar**, **Start with Windows**, **Open log**, and **Exit**. Clicking the taskbar widget also opens the menu. After moving the EXE, re-enable startup with Windows to update its path.
@@ -58,7 +60,7 @@ The application always starts in the tray, without a main window. Right-click it
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\test.ps1
-.\MyMchose.exe --diagnose report.txt
+.\PeripheralBatteryMonitor.exe --diagnose report.txt
 ```
 
 Tests cover real protocol replies, request echoes, charging state, invalid commands, truncated packets, out-of-range values, the driver registry, and localization. They do not require connected hardware. Diagnostics read HID device identifiers and battery responses; review the report before publishing it.
@@ -71,7 +73,8 @@ Settings and the latest log are stored in `%LOCALAPPDATA%\MyMchose`. The selecte
 |---|---|
 | `App.cs` | Background ApplicationContext, menus, single tray icon, polling, and notifications |
 | `Devices.cs` | Data model, driver registry, device state, and response parsing |
-| `MchoseDrivers.cs` | Separate X9 and AX5 battery drivers |
+| `MchoseDrivers.cs` | X9 and A5/AX5 battery drivers |
+| `MchoseMouseDrivers.cs` | Experimental classic and modern MCHOSE mouse protocols |
 | `Localization.cs` | Translation dictionary, language selection, and persistence |
 | `Hid.cs` | HID enumeration and Win32 communication |
 | `Monitors.cs` | Monitor selection and widget instance management |
@@ -96,7 +99,7 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 ## Русский
 
-Расширяемый монитор заряда беспроводных устройств для Windows 10/11 x64.
+Заряд беспроводных мышей, клавиатур и гарнитур на панели задач Windows. Расширяемый монитор для Windows 10/11 x64; список реализованных устройств приведён ниже.
 
 Реализована первая стадия универсализации: реестр модулей, обнаружение устройств, произвольный список в меню трея и динамический виджет. Сейчас проверены **MCHOSE X9** и **MCHOSE AX5 Pro Max**; наличие расширяемой основы не означает поддержку всех моделей. Bluetooth Battery Service пока не реализован.
 
@@ -121,6 +124,8 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 ### Устройства
 
+Добавлена экспериментальная поддержка вариантов A5/AX5, классических приёмников семейств L7/M7/A7 и новых приёмников K7 V2. Новые модели ещё не проверены в этом проекте на оборудовании. Полная [таблица моделей и USB ID](SUPPORTED_DEVICES.md).
+
 | Устройство | Подключение | VID:PID | Проверка |
 |---|---|---|---|
 | MCHOSE X9 | USB-приёмник 2,4 ГГц | `3837:6045` | Проверено на реальном устройстве |
@@ -135,13 +140,13 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
-.\MyMchose.exe
+.\PeripheralBatteryMonitor.exe
 ```
 
-Сборка создаёт переносимый `MyMchose.exe`. Для запуска сразу в трее:
+Сборка создаёт переносимый `PeripheralBatteryMonitor.exe`. Для запуска сразу в трее:
 
 ```powershell
-.\MyMchose.exe --tray
+.\PeripheralBatteryMonitor.exe --tray
 ```
 
 Программа сразу работает в трее, без главного окна. Правый щелчок по значку трея открывает все настройки: **Устройства**, **Обновить**, **Мониторы**, **Заряд на панели задач**, **Запускать с Windows**, **Открыть журнал** и **Выход**. Щелчок по виджету также открывает меню. При перемещении EXE автозапуск нужно включить заново.
@@ -150,7 +155,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\test.ps1
-.\MyMchose.exe --diagnose report.txt
+.\PeripheralBatteryMonitor.exe --diagnose report.txt
 ```
 
 Тесты проверяют разбор реальных ответов, эхо запроса, зарядку, неверные команды, обрезанные пакеты и значения вне диапазона. Они не требуют подключённых устройств. Диагностика считывает идентификаторы HID-устройств и ответы батареи; перед публикацией отчёта проверь его содержимое.
@@ -163,7 +168,8 @@ powershell -ExecutionPolicy Bypass -File .\test.ps1
 |---|---|
 | `App.cs` | Фоновый ApplicationContext, меню, единый значок трея, опрос и уведомления |
 | `Devices.cs` | Модель данных, реестр модулей, состояние устройств и разбор ответов |
-| `MchoseDrivers.cs` | Отдельные модули чтения X9 и AX5 |
+| `MchoseDrivers.cs` | Модули X9 и A5/AX5 |
+| `MchoseMouseDrivers.cs` | Экспериментальные классический и новый протоколы MCHOSE |
 | `Localization.cs` | Словарь переводов, выбор и сохранение языка |
 | `Hid.cs` | Перечисление HID и обмен через Win32 |
 | `Monitors.cs` | Выбор экранов и управление копиями виджета |

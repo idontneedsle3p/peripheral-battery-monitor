@@ -7,6 +7,7 @@ public static class L {
  public static string Language {get;private set;}
  static L(){Language="ru";}
  static readonly Dictionary<string,string> English=new Dictionary<string,string>{
+  {" · экспериментально"," · experimental"},
   {"Обновить","Refresh"},{"Подключение…","Connecting…"},{"Устройства","Devices"},
   {"Заряд на панели задач","Show battery on taskbar"},{"Запускать с Windows","Start with Windows"},
   {"Автозапуск","Startup"},{"Открыть журнал","Open log"},{"Выход","Exit"},{"Мониторы","Monitors"},
@@ -14,7 +15,7 @@ public static class L {
   {" · основной"," · primary"},{"Выбранный монитор отключён","Selected monitor is disconnected"},
   {"Читаю заряд устройств…","Reading battery levels…"},{"Пора зарядить ","Time to charge "},
   {"Осталось ","Remaining: "},{"Обновлено ","Updated "},{" · каждые 30 с · уведомления при ≤ 15%"," · every 30 s · alerts at ≤ 15%"},
-  {"Ошибка: ","Error: "},{"YourBattery: нет устройств","YourBattery: no devices"},
+  {"Ошибка: ","Error: "},{"Peripheral Battery Monitor: нет устройств","Peripheral Battery Monitor: no devices"},
   {"Поддерживаемые устройства не найдены","No supported devices found"},{" · старое значение"," · last known value"},
   {"Последний замер: ","Last reading: "},{"Нет замеров","No readings yet"},{"Нет устройств","No devices"},
   {"Нет ответа","No response"},{"Подключена","Connected"},{"Подключено","Connected"},

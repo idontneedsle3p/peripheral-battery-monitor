@@ -19,15 +19,15 @@ public sealed class MchoseX9Driver : IBatteryDriver {
 }
 public sealed class MchoseAx5Driver : IBatteryDriver {
  public string Id {get{return "mchose-ax5";}}
- public bool Matches(HidCollection c){return c.Vid==0x2023 && (c.Pid==0xF024 || c.Pid==0xF022) && c.Feature==65 && c.Page==0xFFFF;}
- public Reading Describe(HidCollection c){return new Reading("MCHOSE AX5 PRO MAX"){Kind=DeviceKind.Mouse,Transport=c.Pid==0xF022?"USB-кабель":"USB-приёмник · 2,4 ГГц"};}
+ public bool Matches(HidCollection c){return c.Vid==0x2023 && new ushort[]{0xF013,0xF015,0xF017,0xF019,0xF022,0xF024,0xF026}.Contains(c.Pid) && c.Feature==65 && c.Page==0xFFFF;}
+ public Reading Describe(HidCollection c){string name=c.Pid==0xF017?"MCHOSE A5 Pro":c.Pid==0xF019?"MCHOSE A5 Pro Max":c.Pid==0xF026?"MCHOSE AX5 Pro":c.Pid==0xF013 || c.Pid==0xF015?"MCHOSE A5 Pro / Pro Max":"MCHOSE AX5 PRO MAX";return new Reading(name){Kind=DeviceKind.Mouse,Experimental=c.Pid!=0xF024,Transport=new ushort[]{0xF017,0xF019,0xF022,0xF026}.Contains(c.Pid)?"USB-кабель":"USB-приёмник · 2,4 ГГц"};}
  public Reading Read(HidCollection c,Action<string> log){var mouse=Describe(c);
     try{using(var h=Hid.CreateFile(c.Path,0,3,IntPtr.Zero,3,0,IntPtr.Zero)){
      if(h.IsInvalid){mouse.State="Приёмник занят или нет доступа";return mouse;}
      for(int i=0;i<3;i++){byte[] req=new byte[65];req[3]=2;req[4]=2;req[6]=0x83;
       if(!Hid.HidD_SetFeature(h,req,req.Length)){mouse.State="Ошибка запроса";break;}Thread.Sleep(30);
       byte[] r=new byte[65];if(!Hid.HidD_GetFeature(h,r,r.Length))continue;log("AX5 RX "+BitConverter.ToString(r));var parsed=Devices.ParseMouse(r);
-      if(parsed!=null){mouse=parsed;if(c.Pid==0xF022)mouse.Transport="USB-кабель";break;}Thread.Sleep(60);
+      if(parsed!=null){parsed.Name=mouse.Name;parsed.Transport=mouse.Transport;mouse=parsed;break;}Thread.Sleep(60);
      }
     }}catch(Exception e){mouse.State="Ошибка чтения";log(e.Message);}
  return mouse; }

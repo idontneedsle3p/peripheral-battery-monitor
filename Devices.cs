@@ -7,7 +7,7 @@ using System.Diagnostics;
 public enum DeviceKind { Headset, Mouse, Keyboard, Controller, Other }
 public class Reading {
  public string Id,Name,State="Нет ответа",Transport="USB-приёмник · 2,4 ГГц";
- public DeviceKind Kind;public int? Percent;public bool Charging,IsStale;public DateTime? Time;
+ public DeviceKind Kind;public int? Percent;public bool Charging,IsStale,Experimental;public DateTime? Time;
  public Reading(string name){Name=name;Kind=DeviceKind.Other;}
  public string Display {get{return Percent.HasValue?Percent+"%"+(Charging?L.T(" · зарядка"):""):"—";}}
 }
@@ -29,7 +29,7 @@ public sealed class BatteryMonitor {
    Reading current;
    try{current=driver.Read(c,log);if(current==null)throw new InvalidOperationException("Пустой ответ модуля");}
    catch(Exception e){log(driver.Id+": "+e.Message);current=driver.Describe(c);current.State="Ошибка чтения";}
-   current.Id=id;current.Kind=driver.Describe(c).Kind;Reading previous;
+   current.Id=id;var description=driver.Describe(c);current.Kind=description.Kind;current.Experimental=description.Experimental;Reading previous;
    if(current.Percent.HasValue && (current.Percent<0 || current.Percent>100)){current.Percent=null;current.State="Некорректный заряд";}
    if(!current.Percent.HasValue && known.TryGetValue(id,out previous) && previous.Percent.HasValue){current.Percent=previous.Percent;current.Time=previous.Time;current.IsStale=true;current.Charging=false;current.State="Нет ответа · последнее значение";}
    known[id]=current;
@@ -39,7 +39,7 @@ public sealed class BatteryMonitor {
  }
 }
 public static class Devices {
- static readonly BatteryMonitor monitor=new BatteryMonitor(new MchoseX9Driver(),new MchoseAx5Driver());
+ static readonly BatteryMonitor monitor=new BatteryMonitor(new MchoseX9Driver(),new MchoseAx5Driver(),new MchoseClassicDriver(),new MchoseModernDriver());
  public static Reading[] Poll(List<HidCollection> colls,Action<string> log){return monitor.Poll(colls,log);}
  public static int? ParseX9(byte[] r){if(r!=null && r.Length>=4 && r[0]==0x55 && r[1]==0x65 && r[3]==2 && r[2]<=100)return r[2];return null;}
  public static Reading ParseMouse(byte[] r){
