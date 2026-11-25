@@ -10,10 +10,12 @@ public class Reading {
  public string Id,Name,State="Нет ответа",Transport="USB-приёмник · 2,4 ГГц";
  public DeviceKind Kind;public int? Percent;public bool Charging,IsStale,Experimental;public DateTime? Time;
  public BatteryLevel? Level;
- public bool LowBattery{get{return Percent.HasValue?Percent<=15:Level==BatteryLevel.Empty || Level==BatteryLevel.Low;}}
- public string ShortDisplay{get{return Percent.HasValue?Percent+"%":Level.HasValue?L.T(new[]{"Пусто","Низк.","Сред.","Полн.","USB","?"}[(int)Level.Value]):"—";}}
+ public int? Steps;public int MaxSteps;
+ public bool HasBattery{get{return Percent.HasValue || Level.HasValue || Steps.HasValue;}}
+ public bool LowBattery{get{return Percent.HasValue?Percent<=15:Steps.HasValue?Steps.Value*100<=MaxSteps*15:Level==BatteryLevel.Empty || Level==BatteryLevel.Low;}}
+ public string ShortDisplay{get{return Percent.HasValue?Percent+"%":Steps.HasValue?Steps+"/"+MaxSteps:Level.HasValue?L.T(new[]{"Пусто","Низк.","Сред.","Полн.","USB","?"}[(int)Level.Value]):"—";}}
  public Reading(string name){Name=name;Kind=DeviceKind.Other;}
- public string Display {get{return (Percent.HasValue?Percent+"%":Level.HasValue?L.T(new[]{"Разряжен","Низкий заряд","Средний заряд","Полный заряд","Питание по USB","Заряд неизвестен"}[(int)Level.Value]):"—")+(Charging?L.T(" · зарядка"):"");}}
+ public string Display {get{return (Steps.HasValue?L.T("Уровень ")+Steps+"/"+MaxSteps:Percent.HasValue?Percent+"%":Level.HasValue?L.T(new[]{"Разряжен","Низкий заряд","Средний заряд","Полный заряд","Питание по USB","Заряд неизвестен"}[(int)Level.Value]):"—")+(Charging?L.T(" · зарядка"):"");}}
 }
 public interface IBatteryDriver {
  string Id {get;}
@@ -41,8 +43,9 @@ public sealed class BatteryMonitor {
    catch(Exception e){log(driver.Id+": "+e.Message);current=driver.Describe(c);current.State="Ошибка чтения";}
    current.Id=id;var description=driver.Describe(c);current.Kind=description.Kind;current.Experimental=description.Experimental;Reading previous;
    if(current.Percent.HasValue && (current.Percent<0 || current.Percent>100)){current.Percent=null;current.State="Некорректный заряд";}
-   if(driver is IRequireBatteryReading && !current.Percent.HasValue && !current.Level.HasValue && !known.ContainsKey(id))continue;
-   if(!current.Percent.HasValue && !current.Level.HasValue && known.TryGetValue(id,out previous) && (previous.Percent.HasValue || previous.Level.HasValue)){current.Percent=previous.Percent;current.Level=previous.Level;current.Time=previous.Time;current.IsStale=true;current.Charging=false;current.State="Нет ответа · последнее значение";}
+   if(current.Steps.HasValue && (current.MaxSteps<=0 || current.Steps<0 || current.Steps>current.MaxSteps)){current.Steps=null;current.State="Некорректный заряд";}
+   if(driver is IRequireBatteryReading && !current.HasBattery && !known.ContainsKey(id))continue;
+   if(!current.HasBattery && known.TryGetValue(id,out previous) && previous.HasBattery){current.Percent=previous.Percent;current.Level=previous.Level;current.Steps=previous.Steps;current.MaxSteps=previous.MaxSteps;current.Time=previous.Time;current.IsStale=true;current.Charging=false;current.State="Нет ответа · последнее значение";}
    known[id]=current;
   }
   foreach(var pair in known)if(!seen.Contains(pair.Key)){pair.Value.IsStale=true;pair.Value.Charging=false;pair.Value.State="Отключено";}
@@ -51,7 +54,7 @@ public sealed class BatteryMonitor {
 }
 public static class Devices {
  static readonly IBatterySource[] sources={new XInputSource(),new BluetoothBatterySource(),new LogitechBatterySource()};
- static readonly BatteryMonitor monitor=new BatteryMonitor(new MchoseX9Driver(),new MchoseAx5Driver(),new MchoseClassicDriver(),new MchoseModernDriver(),new MchoseKeyboardDriver(),new RazerBatteryDriver(),new SteelSeriesBatteryDriver());
+ static readonly BatteryMonitor monitor=new BatteryMonitor(new MchoseX9Driver(),new MchoseAx5Driver(),new MchoseClassicDriver(),new MchoseModernDriver(),new MchoseKeyboardDriver(),new RazerBatteryDriver(),new SteelSeriesBatteryDriver(),new PlayStationBatteryDriver(),new SteelSeriesProBatteryDriver());
  public static Reading[] Poll(List<HidCollection> colls,Action<string> log,bool force=false){var result=monitor.Poll(colls,log,force).ToList();foreach(var source in sources){try{result.AddRange(source.Poll(log));}catch(Exception e){log(source.GetType().Name+": "+e.Message);}}return result.ToArray();}
  public static int? ParseX9(byte[] r){if(r!=null && r.Length>=4 && r[0]==0x55 && r[1]==0x65 && r[3]==2 && r[2]<=100)return r[2];return null;}
  public static Reading ParseMouse(byte[] r){

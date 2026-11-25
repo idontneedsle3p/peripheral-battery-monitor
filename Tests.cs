@@ -107,10 +107,28 @@ class Tests {
   var steps=new FakeDriver{Discrete=true};var stepMonitor=new BatteryMonitor(steps);stepMonitor.Poll(cols,s=>{});steps.Fail=true;var oldSteps=stepMonitor.Poll(cols,s=>{});Check(oldSteps[0].Level==BatteryLevel.Low && oldSteps[0].IsStale,"failed discrete HID reading retains stale level");
   Check(LogitechBatterySource.Parse(0x1004,new byte[]{0,0,0}).Level==BatteryLevel.Unknown,"Logitech missing SOC is not fabricated zero");
   Check(new BluetoothBatterySource(log=>new Reading[0]).Poll(s=>{}).Length==0,"no phantom Bluetooth devices");
+  var sony=PlayStationBatteryDriver.Parse(0x0CE6,false,SonyReport(1,64,53,0x16));Check(sony.Steps==6 && sony.MaxSteps==10 && sony.Charging && !sony.Percent.HasValue,"DualSense charging uses raw steps");
+  Check(PlayStationBatteryDriver.Parse(0x0CE6,false,SonyReport(1,64,53,0x2A)).Steps==10,"DualSense full state");
+  Check(!PlayStationBatteryDriver.Parse(0x0CE6,false,SonyReport(1,64,53,0x2A)).Charging,"DualSense full is not charging");
+  Check(PlayStationBatteryDriver.Parse(0x09CC,false,SonyReport(1,64,30,0x17)).Steps==7,"DS4 USB steps");
+  Check(!PlayStationBatteryDriver.Parse(0x09CC,false,SonyReport(1,64,30,0x1B)).Charging,"DS4 fully charged");
+  byte[] sonyBt=SonyReport(0x31,78,54,0x13);Check(PlayStationBatteryDriver.Parse(0x0DF2,true,sonyBt).Steps==3,"DualSense Edge Bluetooth CRC");
+  sonyBt[20]^=1;Check(PlayStationBatteryDriver.Parse(0x0DF2,true,sonyBt)==null,"Sony corrupt Bluetooth report rejected");
+  Check(PlayStationBatteryDriver.Parse(0x09CC,true,SonyReport(0x11,78,32,6)).Steps==6,"DS4 Bluetooth report");
+  Check(PlayStationBatteryDriver.Parse(0x0CE6,true,new byte[10])==null,"Sony reduced report excluded");
+  Check(PlayStationBatteryDriver.Parse(0x0CE6,false,SonyReport(1,64,53,0x0F))==null,"Sony invalid battery step");
+  Check(PlayStationBatteryDriver.Parse(0x0CE6,false,SonyReport(1,64,53,0xA5))==null,"Sony error charge state excluded");
+  Check(!new PlayStationBatteryDriver().Matches(new HidCollection{Vid=0x054C,Pid=0x0CE6,Page=1,Usage=6,Input=64}),"Sony non-gamepad collections excluded");
+  var pro=new byte[16];pro[0]=6;pro[1]=0xB0;pro[6]=7;pro[15]=2;var proReading=SteelSeriesProBatteryDriver.Parse(0x12E0,pro);Check(proReading.Steps==7 && proReading.MaxSteps==8 && proReading.Charging,"Nova Pro raw battery steps");
+  pro[15]=1;Check(SteelSeriesProBatteryDriver.Parse(0x12E0,pro)==null,"Nova Pro offline");pro[15]=3;pro[6]=9;Check(SteelSeriesProBatteryDriver.Parse(0x12E0,pro)==null,"Nova Pro invalid step");
+  var omni=new byte[17];omni[0]=1;omni[1]=0xB0;omni[6]=99;omni[14]=8;omni[15]=3;Check(SteelSeriesProBatteryDriver.Parse(0x2290,omni).Percent==99,"Nova Omni percentage is not clamped upward");
+  omni[14]=0;Check(SteelSeriesProBatteryDriver.Parse(0x2290,omni)==null,"Nova Omni lost link excluded");
+  L.Set("en");Check(sony.Display=="Level 6/10 · charging" && sony.ShortDisplay=="6/10","step-based battery English display");L.Set("ru");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}
  static void ModernChecksum(byte[] r){r[8+r[3]]=0;for(int i=2;i<8+r[3];i++)r[8+r[3]]^=r[i];}
+ static byte[] SonyReport(byte id,int length,int offset,byte status){var r=new byte[length];r[0]=id;r[offset]=status;if(length==78){uint crc=PlayStationBatteryDriver.BluetoothCrc(r);for(int i=0;i<4;i++)r[74+i]=(byte)(crc>>(8*i));}return r;}
 }
 class FakeDriver:IBatteryDriver,IBatteryPollingPolicy {
  public TimeSpan Interval;public TimeSpan MinimumPollInterval{get{return Interval;}}

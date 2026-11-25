@@ -15,6 +15,10 @@
 | SteelSeries Arctis Nova 3 Wireless / Nova 5 | `1038:2269`, `226D`, `2232`, `2253` | Experimental / Экспериментально |
 | SteelSeries Arctis Nova 7 variants / варианты | `1038:2202`, `2206`, `220A`, `223A`, `227A`, `22A4`, `22A1`, `227E`, `2258`, `229E`, `22AD`, `22A9`, `22A5`, `22A7` | Experimental; format varies by PID / Экспериментально; формат зависит от PID |
 | SteelSeries Arctis GameBuds / GameBuds X | `1038:230A`, `2317` | Experimental; lowest active earbud / Экспериментально; минимум среди активных наушников |
+| Sony DualShock 4 | `054C:05C4`, `09CC` | Experimental; USB/Bluetooth, reported steps / Экспериментально; ступени заряда |
+| Sony DualSense / DualSense Edge | `054C:0CE6`, `0DF2` | Experimental; USB/Bluetooth, reported steps / Экспериментально; ступени заряда |
+| SteelSeries Arctis Nova Pro Wireless variants / варианты | `1038:12E0`, `12E5`, `225D`, vendor collection on interface / vendor-коллекция интерфейса `04` | Experimental; 0–8 steps / Экспериментально; 0–8 ступеней |
+| SteelSeries Arctis Nova Pro Omni / Nova Elite | `1038:2290`, `2244`, `2270`, collection / коллекция `FFC0:0001` | Experimental / Экспериментально |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -41,6 +45,17 @@ Shared receiver IDs do not identify a precise model. Classic and modern modules 
 - [Solaar HID++ reference implementation](https://github.com/pwr-Solaar/Solaar/blob/master/lib/logitech_receiver/hidpp20.py).
 - [OpenRazer report format](https://github.com/openrazer/openrazer/blob/master/driver/razercommon.c).
 - [HeadsetControl](https://github.com/Sapd/HeadsetControl).
+- [Linux PlayStation input report layouts](https://github.com/torvalds/linux/blob/master/drivers/hid/hid-playstation.c).
+
+## Native Sony and Pro headsets / Sony и гарнитуры Pro
+
+The Sony module reads native gamepad input reports. DualShock 4, DualSense and DualSense Edge expose coarse battery buckets, shown as `n/10` rather than an invented exact percentage. USB requires a full 64-byte report; Bluetooth requires the full 78-byte report and a valid input CRC. A read of calibration feature `05` is used on Bluetooth to request full reports; no calibration data is written. Reduced reports and battery error states are ignored. The Sony `0BA0` USB adapter and third-party clones are not included. HidHide, exclusive controller tools and emulation can hide the native device or produce a separate XInput entry.
+
+Nova Pro Wireless uses `n/8` levels, and Omni/Elite uses the reported percentage. The base station's spare battery is not shown. Hardware confirmation is still needed for all new models and connection variants.
+
+Модуль Sony читает штатные входные отчёты геймпада. DualShock 4, DualSense и DualSense Edge сообщают грубые ступени: они отображаются как `n/10`, без выдуманного точного процента. Для USB нужен полный 64-байтовый отчёт; для Bluetooth — полный 78-байтовый отчёт с корректной CRC. Чтение feature `05` запрашивает полный формат Bluetooth; калибровка не записывается. Сокращённые отчёты и ошибки батареи игнорируются. Адаптер Sony `0BA0` и сторонние клоны пока не включены. HidHide, эксклюзивный доступ и эмуляторы могут скрыть исходный контроллер или создать отдельную запись XInput.
+
+Nova Pro Wireless показывает уровень `n/8`, Omni/Elite — переданный устройством процент. Запасная батарея в базовой станции не отображается. Новым моделям и вариантам подключения нужна проверка на оборудовании.
 
 ## Broad protocol support / Поддержка семейств протоколов
 
@@ -50,7 +65,7 @@ Shared receiver IDs do not identify a precise model. Classic and modern modules 
 
 **Razer:** uses only battery and charging status commands, verifies transaction/command/CRC, and shows a new device only after a valid battery reply. Compatible wireless variants of Viper, DeathAdder, Basilisk, Orochi, Pro Click, BlackWidow and DeathStalker are candidates, not individually hardware-verified models. Some models use other report formats or firmware.
 
-**SteelSeries:** only the listed PIDs and vendor collection `FFC0:0001` are queried. Percentage replies remain percentages; step-based reports remain qualitative levels. GameBuds display the lower battery among the active buds. Original Arctis 1/7/9, Nova Pro, Elite and Aerox/Rival mouse protocols are not part of this module.
+**SteelSeries:** only the listed PIDs and vendor collection `FFC0:0001` are queried. Percentage replies remain percentages; step-based reports remain qualitative levels. GameBuds display the lower battery among the active buds. Nova Pro/Omni/Elite use a separate module listed above. Original Arctis 1/7/9 and Aerox/Rival mouse protocols are not included.
 
 **Bluetooth:** опрашиваются только уже сопряжённые и подключённые BLE-устройства с читаемой стандартной характеристикой уровня батареи. Сопряжение, поиск несопряжённых устройств и угадывание фирменных протоколов не выполняются. Не все Bluetooth-устройства предоставляют Battery Service; классический Bluetooth и фирменные объявления наушников не входят в этот модуль. Несколько батарей BAS показываются отдельно.
 
@@ -58,7 +73,7 @@ Shared receiver IDs do not identify a precise model. Classic and modern modules 
 
 **Razer:** запросы только батареи и зарядки, проверка транзакции, команды и CRC; устройство появляется после первого корректного ответа батареи. Беспроводные варианты Viper, DeathAdder, Basilisk, Orochi, Pro Click, BlackWidow и DeathStalker — кандидаты на совместимость, а не модели с подтверждённым аппаратным тестированием. У отдельных моделей другие прошивки и форматы отчётов.
 
-**SteelSeries:** опрашиваются только перечисленные PID и коллекция `FFC0:0001`. Проценты остаются процентами, ступенчатые значения показываются уровнями. Для GameBuds отображается меньший заряд среди активных наушников. Старые Arctis 1/7/9, Nova Pro, Elite и мыши Aerox/Rival требуют других модулей.
+**SteelSeries:** опрашиваются только перечисленные PID и коллекция `FFC0:0001`. Проценты остаются процентами, ступенчатые значения показываются уровнями. Для GameBuds отображается меньший заряд среди активных наушников. Nova Pro/Omni/Elite используют отдельный модуль из таблицы выше. Старые Arctis 1/7/9 и мыши Aerox/Rival пока не включены.
 
 Cross-protocol deduplication is not implemented: one physical device exposing multiple independent battery APIs may appear more than once. / Объединение записей из разных протоколов пока не реализовано: устройство с несколькими независимыми API батареи может отображаться несколько раз.
 

@@ -7,6 +7,7 @@ public static class L {
  public static string Language {get;private set;}
  static L(){Language="ru";}
  static readonly Dictionary<string,string> English=new Dictionary<string,string>{
+  {"Уровень ","Level "},
   {"Пусто","Empty"},{"Низк.","Low"},{"Сред.","Med"},{"Полн.","Full"},
   {"Разряжен","Empty"},{"Низкий заряд","Low battery"},{"Средний заряд","Medium battery"},{"Полный заряд","Full battery"},{"Питание по USB","USB powered"},{"Заряд неизвестен","Battery level unavailable"},
   {" · экспериментально"," · experimental"},
