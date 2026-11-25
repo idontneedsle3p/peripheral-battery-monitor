@@ -25,6 +25,13 @@
 | HyperX Cloud Alpha Wireless | `03F0:098D`; `FF43:0202` | Experimental / Экспериментально |
 | SteelSeries Aerox 3 / 5 / 9 and Prime Wireless variants | VID `1038`; PIDs `1838`, `183A`, `1878`, `187A`, `1890`, `1892`, `1852`, `1854`, `185C`, `185E`, `1858`, `185A`, `1840`, `1842`, `1860`; interface `03` | Experimental / Экспериментально |
 | Jabra headsets behind Link 390 / гарнитуры за приёмником Link 390 | `0B0E:2E50`, `2E51`, `2E56`, `2E57`; `FF00:0005`, 64-byte reports | Experimental / Экспериментально |
+| Standard HID Battery Strength / стандартный HID | Usage `0006:0020`, scalar absolute 0–100 field in feature or input reports | Experimental; descriptor-driven / Экспериментально; по дескриптору |
+| Logitech HID++ 1.x battery registers / регистры батареи | VID `046D`, `FF00:0001`, 7-byte input/output, registers `0D` or `07` | Experimental / Экспериментально |
+| Logitech G PRO X 2 LIGHTSPEED | `046D:0AF7`, `FFA0:0001`, 64-byte reports | Experimental; fixed legacy query / Экспериментально; фиксированный запрос |
+| SteelSeries Arctis 1 / 7X family | `1038:12B3`, `12B6`, `12D7`, `FF43:0202` | Experimental / Экспериментально |
+| SteelSeries Arctis 7 / 2019 / Pro | `1038:1260`, `12AD`, `1252`, `FF43:0202` | Experimental / Экспериментально |
+| SteelSeries Arctis 9 / Pro Wireless | `1038:12C2`, `1290`, vendor collection on interface `00` | Experimental; raw steps / Экспериментально; ступени |
+| HyperX Cloud II Wireless (Kingston) | `0951:1718`, vendor page, 62-byte output | Experimental / Экспериментально |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -57,14 +64,26 @@ Shared receiver IDs do not identify a precise model. Classic and modern modules 
 - [HyperX Battery Tray](https://github.com/GuacamoleGH/HyperX-Battery-Tray).
 - [rivalcfg SteelSeries protocol research](https://github.com/flozz/rivalcfg).
 - [HeadsetControl Jabra Link 390](https://github.com/Sapd/HeadsetControl/blob/master/lib/devices/jabra_link_390.hpp).
+- [Microsoft HIDP_VALUE_CAPS](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/hidpi/ns-hidpi-_hidp_value_caps).
+- [Microsoft HidP_GetUsageValue](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/hidpi/nf-hidpi-hidp_getusagevalue).
+
+## Standard HID and legacy devices / Стандартный HID и старые устройства
+
+Standard HID support is descriptor-driven, not a brand whitelist. Only a non-aliased scalar absolute Battery Strength value with logical range exactly 0–100 is accepted. The Windows HID parser extracts the declared field; no report offsets or vendor commands are guessed. Feature reports are tried first, then input snapshots. Value arrays, usage ranges, voltage-only fields and other scales are excluded. Charging is not inferred. The driver must allow the corresponding HID read. Only one matching battery field per report type/collection is used.
+
+HID++ 1.x uses the short register reads `0D` (percentage) and `07` (qualitative level), and does not invent percentages for coarse levels. Short and long HID++ collections are grouped per receiver, with a fresh HID++ 2.x reading preferred. Some legacy receiver slots have only generic names. PRO X 2 support is limited to firmware accepting the fixed legacy battery query; G522 and generic Centurion discovery are not included. Arctis 9/Pro Wireless report native `n/54` and `n/4` levels. The Arctis 7 zero response is treated as unavailable rather than a confirmed empty battery.
+
+Стандартный HID определяется по дескриптору, а не списку брендов. Принимается только одиночное абсолютное поле Battery Strength без alias, с логическим диапазоном ровно 0–100. Поле извлекает парсер HID Windows; смещения и фирменные команды не угадываются. Сначала читается feature-отчёт, затем снимок input. Массивы, диапазоны usage, напряжение и другие шкалы исключены. Зарядка не выводится из косвенных признаков. Драйвер должен разрешать соответствующее чтение. Используется первое подходящее поле каждого типа в коллекции.
+
+HID++ 1.x читает короткие регистры `0D` (проценты) и `07` (уровни), без выдуманных процентов для грубых значений. Короткие и длинные коллекции объединяются по приёмнику; свежий результат HID++ 2.x имеет приоритет. Некоторые старые слоты имеют только общее имя. PRO X 2 ограничен прошивками с фиксированным legacy-запросом батареи; G522 и общий Centurion пока не включены. Arctis 9/Pro Wireless отображают `n/54` и `n/4`. Нулевой ответ Arctis 7 считается отсутствием данных, а не подтверждённым разрядом.
 
 ## Corsair, HyperX, Aerox and Jabra
 
-Corsair capacity is shown as reported with the microphone bit removed; it can read high while charging. Initializing/disconnected and malformed states are ignored. HyperX III S/Stinger 3 battery reads do not query charging state; unsolicited charger events are not tracked in this implementation. Core/III and Alpha have separate charging queries. Voltage-only Flight/Stinger Core protocols and the older Kingston Cloud II are not included.
+Corsair capacity is shown as reported with the microphone bit removed; it can read high while charging. Initializing/disconnected and malformed states are ignored. HyperX III S/Stinger 3 battery reads do not query charging state; unsolicited charger events are not tracked in this implementation. Core/III and Alpha have separate charging queries. The older Kingston Cloud II uses a separate module. Voltage-only Flight/Stinger Core protocols are not included.
 
 Aerox/Prime packets with 21 battery codes are displayed as `n/20` steps. Aerox 3 Gen 2 uses its actual percentage field. Transport-specific commands are selected by PID. Other Rival protocols are not included. Jabra coverage is limited to GNP battery queries through the listed Link 390 IDs, not all Jabra products or Link 380; the displayed name identifies the receiver rather than the paired headset model.
 
-Corsair показывает переданный заряд без бита положения микрофона; во время зарядки он может быть завышен. Состояния инициализации, отключения и некорректные ответы исключаются. У HyperX III S/Stinger 3 зарядка отдельным запросом не определяется, события подключения кабеля пока не отслеживаются. Core/III и Alpha используют отдельные запросы зарядки. Протоколы Flight/Stinger Core с напряжением и старый Kingston Cloud II пока не включены.
+Corsair показывает переданный заряд без бита положения микрофона; во время зарядки он может быть завышен. Состояния инициализации, отключения и некорректные ответы исключаются. У HyperX III S/Stinger 3 зарядка отдельным запросом не определяется, события подключения кабеля пока не отслеживаются. Core/III и Alpha используют отдельные запросы зарядки. Старый Kingston Cloud II использует отдельный модуль. Протоколы Flight/Stinger Core с напряжением пока не включены.
 
 Для Aerox/Prime с 21 кодом заряда отображается `n/20`; Aerox 3 Gen 2 использует поле процентов. Команда зависит от PID и подключения. Протоколы остальных Rival пока не включены. Jabra ограничена запросом батареи GNP через перечисленные Link 390: это не поддержка всех Jabra и не Link 380. Название в меню обозначает приёмник, а не точную модель гарнитуры.
 
@@ -82,19 +101,19 @@ Nova Pro Wireless показывает уровень `n/8`, Omni/Elite — пе
 
 **Bluetooth:** only already paired, connected BLE devices with a readable standard Battery Level characteristic are queried. No pairing, scanning for unpaired devices, or vendor-specific battery guessing is performed. Not all Bluetooth peripherals expose this service. Classic Bluetooth and manufacturer-specific earbud advertisements are outside this module. Multiple BAS instances are shown separately.
 
-**Logitech:** discovers battery features and names through HID++ 2.x, including direct index `FF` and receiver slots 1–6. Requires a 20-byte input/output collection (`FF00:0002` or compatible `FF43`). HID++ 1.x, short-only interfaces, Centurion, voltage-only batteries and ADC-based G headsets are not implemented. MX/LIGHTSPEED/Unifying/Bolt branding alone is not proof of compatibility; the required features must be present.
+**Logitech:** discovers battery features and names through HID++ 2.x, including direct index `FF` and receiver slots 1–6. Requires a 20-byte input/output collection (`FF00:0002` or compatible `FF43`). Short HID++ 1.x and the fixed PRO X 2 query use separate paths described above; generic Centurion, voltage-only batteries and ADC-based G headsets are not implemented. MX/LIGHTSPEED/Unifying/Bolt branding alone is not proof of compatibility; the required features must be present.
 
 **Razer:** uses only battery and charging status commands, verifies transaction/command/CRC, and shows a new device only after a valid battery reply. Compatible wireless variants of Viper, DeathAdder, Basilisk, Orochi, Pro Click, BlackWidow and DeathStalker are candidates, not individually hardware-verified models. Some models use other report formats or firmware.
 
-**SteelSeries:** only the listed PIDs and vendor collection `FFC0:0001` are queried. Percentage replies remain percentages; step-based reports remain qualitative levels. GameBuds display the lower battery among the active buds. Nova Pro/Omni/Elite use a separate module listed above. Original Arctis 1/7/9 and Aerox/Rival mouse protocols are not included.
+**SteelSeries:** only the listed PIDs and vendor collection `FFC0:0001` are queried. Percentage replies remain percentages; step-based reports remain qualitative levels. GameBuds display the lower battery among the active buds. Nova Pro/Omni/Elite use a separate module listed above. Original Arctis 1/7/9/Pro Wireless and Aerox/Prime mice now have separate modules. Rival mouse protocols are not included.
 
 **Bluetooth:** опрашиваются только уже сопряжённые и подключённые BLE-устройства с читаемой стандартной характеристикой уровня батареи. Сопряжение, поиск несопряжённых устройств и угадывание фирменных протоколов не выполняются. Не все Bluetooth-устройства предоставляют Battery Service; классический Bluetooth и фирменные объявления наушников не входят в этот модуль. Несколько батарей BAS показываются отдельно.
 
-**Logitech:** обнаружение имени и батареи через HID++ 2.x, прямой индекс `FF` и слоты приёмника 1–6. Нужна 20-байтовая input/output-коллекция `FF00:0002` либо совместимая `FF43`. HID++ 1.x, только короткие отчёты, Centurion, батареи только с напряжением и ADC-гарнитуры пока не поддерживаются. Название MX/LIGHTSPEED/Unifying/Bolt само по себе совместимость не гарантирует.
+**Logitech:** обнаружение имени и батареи через HID++ 2.x, прямой индекс `FF` и слоты приёмника 1–6. Нужна 20-байтовая input/output-коллекция `FF00:0002` либо совместимая `FF43`. Короткие HID++ 1.x и фиксированный запрос PRO X 2 имеют отдельные пути выше; общий Centurion, батареи только с напряжением и ADC-гарнитуры пока не поддерживаются. Название MX/LIGHTSPEED/Unifying/Bolt само по себе совместимость не гарантирует.
 
 **Razer:** запросы только батареи и зарядки, проверка транзакции, команды и CRC; устройство появляется после первого корректного ответа батареи. Беспроводные варианты Viper, DeathAdder, Basilisk, Orochi, Pro Click, BlackWidow и DeathStalker — кандидаты на совместимость, а не модели с подтверждённым аппаратным тестированием. У отдельных моделей другие прошивки и форматы отчётов.
 
-**SteelSeries:** опрашиваются только перечисленные PID и коллекция `FFC0:0001`. Проценты остаются процентами, ступенчатые значения показываются уровнями. Для GameBuds отображается меньший заряд среди активных наушников. Nova Pro/Omni/Elite используют отдельный модуль из таблицы выше. Старые Arctis 1/7/9 и мыши Aerox/Rival пока не включены.
+**SteelSeries:** опрашиваются только перечисленные PID и коллекция `FFC0:0001`. Проценты остаются процентами, ступенчатые значения показываются уровнями. Для GameBuds отображается меньший заряд среди активных наушников. Nova Pro/Omni/Elite используют отдельный модуль из таблицы выше. Старые Arctis 1/7/9/Pro Wireless и мыши Aerox/Prime имеют отдельные модули. Мыши Rival пока не включены.
 
 Cross-protocol deduplication is not implemented: one physical device exposing multiple independent battery APIs may appear more than once. / Объединение записей из разных протоколов пока не реализовано: устройство с несколькими независимыми API батареи может отображаться несколько раз.
 

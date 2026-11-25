@@ -6,7 +6,7 @@
 
 Wireless mouse, keyboard and headset battery levels on the Windows taskbar. An extensible monitor for Windows 10/11 x64; see the support list for currently implemented devices.
 
-The first stage of generalization is implemented: a driver registry, device discovery, a dynamic device list in the tray menu, and a taskbar widget. **MCHOSE X9** and **MCHOSE AX5 Pro Max** have been tested on hardware. An extensible architecture does not mean every device is supported. Standard Bluetooth LE Battery Service is now supported; vendor-specific Bluetooth protocols are not covered.
+The application uses a driver registry, device discovery, a dynamic device list in the tray menu, and a taskbar widget. **MCHOSE X9** and **MCHOSE AX5 Pro Max** have been tested on hardware. An extensible architecture does not mean every device is supported. Standard Bluetooth LE Battery Service is now supported; vendor-specific Bluetooth protocols are not covered.
 
 The taskbar shows minimalist outline icons and battery percentages on a transparent background. Text and icons are antialiased and scaled to the taskbar DPI.
 
@@ -29,23 +29,21 @@ The application runs locally and makes no network requests.
 
 ### Supported devices
 
-The latest batch adds Corsair Void/HS70-family receivers, HyperX Cloud III S/III/II Core/Alpha, SteelSeries Aerox/Prime mice and Jabra Link 390 battery queries. All are experimental; see the [complete USB ID matrix](SUPPORTED_DEVICES.md).
+Hardware-tested in this project: **MCHOSE X9** and **MCHOSE AX5 Pro Max**. Other additions are experimental and require confirmation on physical devices. The list below describes protocol coverage, not a guarantee for every product carrying a brand name.
 
-Native Sony **DualShock 4 / DualSense / DualSense Edge** and SteelSeries **Nova Pro Wireless / Omni / Elite** modules are included experimentally. Coarse battery reports are displayed as steps (`n/10`, `n/8`). See the [support matrix](SUPPORTED_DEVICES.md) for USB IDs and transport restrictions.
+| Group | Current coverage |
+|---|---|
+| Standard APIs | Bluetooth LE Battery Service, descriptor-declared HID Battery Strength, XInput controllers |
+| Logitech | HID++ 1.x / 2.x battery devices and selected G PRO X 2 firmware |
+| Razer | Compatible 91-byte battery-report mice and keyboards |
+| SteelSeries | Arctis/Nova/GameBuds headsets, selected Aerox/Prime mice |
+| Corsair | Compatible Void / Void Pro / Void Elite / HS70-family receivers |
+| HyperX | Selected Cloud II/II Core/III/III S/Stinger 3/Alpha receivers |
+| Sony | Native DualShock 4, DualSense and DualSense Edge input reports |
+| Jabra | Headset battery queries through listed Link 390 receivers |
+| MCHOSE | X9, V9 Turbo+, A5/AX5, selected classic/modern mice and GLW keyboards |
 
-New broad-protocol batch: **standard Bluetooth LE Battery Service**, **Logitech HID++ 2.x**, **compatible Razer mice/keyboards** and **24 SteelSeries Arctis/Nova/GameBuds USB IDs**. These additions are experimental; exact protocol boundaries and hardware status are documented in [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md).
-
-Standard **XInput controller support** is now available across compatible brands, with discrete battery levels rather than invented percentages. Experimental GLW keyboard and V9 Turbo+ support is also included. See [compatibility and limitations](SUPPORTED_DEVICES.md).
-
-Expanded MCHOSE support includes A5/AX5 variants, classic L7/M7/A7-family receivers, and newer K7 V2-family receivers. New additions are **experimental**, not hardware-verified in this project. See the complete [device and USB ID matrix](SUPPORTED_DEVICES.md).
-
-| Device | Connection | VID:PID | Status |
-|---|---|---|---|
-| MCHOSE X9 | 2.4 GHz USB receiver | `3837:6045` | Tested on hardware |
-| MCHOSE AX5 Pro Max | 2.4 GHz USB receiver | `2023:F024` | Tested on hardware |
-| MCHOSE AX5 Pro Max | USB cable | `2023:F022` | Implemented, not tested on hardware |
-
-Windows must show taskbars on secondary screens for the widget to appear there. Horizontal taskbars are supported. Battery history and vendor-specific classic Bluetooth protocols are not implemented yet. The X9 protocol does not report charging state. When a device stops responding, its last reading is explicitly marked as stale.
+See [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md) for exact USB IDs, report formats, connection restrictions and test status. Some devices expose only coarse levels; these remain levels or `n/max` steps, rather than invented precise percentages. The X9 read does not provide charging state. Battery history and manufacturer-specific classic Bluetooth protocols are not implemented. Windows must show a horizontal taskbar on each selected monitor.
 
 ### Build and run
 
@@ -93,6 +91,7 @@ Settings and the latest log are stored in `%LOCALAPPDATA%\MyMchose`. The selecte
 | `Hid.cs` | HID enumeration and Win32 communication |
 | `Monitors.cs` | Monitor selection and widget instance management |
 | `TaskbarStrip.cs` | Rendering, transparency, and taskbar positioning |
+| `*BatteryDriver.cs` / `*BatteryDrivers.cs` | Model-specific status-only protocol modules |
 | `Tests.cs` | Protocol, registry, and localization tests |
 
 `Devices.cs` contains the `Reading` model, `IBatteryDriver` interface, and `BatteryMonitor` registry and cache. Adding a protocol does not require changing the menu or renderer. See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions (currently in Russian).
@@ -115,7 +114,7 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 Заряд беспроводных мышей, клавиатур и гарнитур на панели задач Windows. Расширяемый монитор для Windows 10/11 x64; список реализованных устройств приведён ниже.
 
-Реализована первая стадия универсализации: реестр модулей, обнаружение устройств, произвольный список в меню трея и динамический виджет. Сейчас проверены **MCHOSE X9** и **MCHOSE AX5 Pro Max**; наличие расширяемой основы не означает поддержку всех моделей. Стандартный Bluetooth LE Battery Service теперь поддерживается; фирменные Bluetooth-протоколы пока не реализованы.
+Реализованы реестр модулей, обнаружение устройств, произвольный список в меню трея и динамический виджет. Сейчас проверены **MCHOSE X9** и **MCHOSE AX5 Pro Max**; наличие расширяемой основы не означает поддержку всех моделей. Стандартный Bluetooth LE Battery Service теперь поддерживается; фирменные Bluetooth-протоколы пока не реализованы.
 
 На панели задач отображаются минималистичные контурные значки гарнитуры и мыши с процентами заряда. Фон прозрачный; подписи и значки сглажены и учитывают DPI панели задач.
 
@@ -138,23 +137,21 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 ### Устройства
 
-Последняя пачка: приёмники Corsair Void/HS70, HyperX Cloud III S/III/II Core/Alpha, мыши SteelSeries Aerox/Prime и батарея через Jabra Link 390. Все дополнения экспериментальные; [полная таблица USB ID](SUPPORTED_DEVICES.md).
+На оборудовании в этом проекте проверены **MCHOSE X9** и **MCHOSE AX5 Pro Max**. Остальные дополнения экспериментальные и требуют проверки владельцами устройств. Ниже перечислены протоколы, а не гарантия поддержки каждой модели указанного бренда.
 
-Экспериментально добавлены штатные протоколы Sony **DualShock 4 / DualSense / DualSense Edge** и SteelSeries **Nova Pro Wireless / Omni / Elite**. Ступенчатый заряд отображается как `n/10` или `n/8`. USB ID и ограничения подключения — в [таблице совместимости](SUPPORTED_DEVICES.md).
+| Группа | Текущая поддержка |
+|---|---|
+| Стандартные API | Bluetooth LE Battery Service, HID Battery Strength из дескриптора, геймпады XInput |
+| Logitech | Батареи HID++ 1.x / 2.x и выбранные прошивки G PRO X 2 |
+| Razer | Совместимые мыши и клавиатуры с 91-байтовыми отчётами батареи |
+| SteelSeries | Гарнитуры Arctis/Nova/GameBuds, выбранные мыши Aerox/Prime |
+| Corsair | Совместимые приёмники семейств Void / Void Pro / Void Elite / HS70 |
+| HyperX | Выбранные приёмники Cloud II/II Core/III/III S/Stinger 3/Alpha |
+| Sony | Штатные input-отчёты DualShock 4, DualSense и DualSense Edge |
+| Jabra | Заряд гарнитуры через перечисленные приёмники Link 390 |
+| MCHOSE | X9, V9 Turbo+, A5/AX5, выбранные классические/новые мыши и клавиатуры GLW |
 
-Новая пачка: **стандартный Bluetooth LE Battery Service**, **Logitech HID++ 2.x**, **совместимые мыши и клавиатуры Razer**, **24 USB ID гарнитур SteelSeries Arctis/Nova/GameBuds**. Дополнения экспериментальные; границы протоколов и аппаратные проверки перечислены в [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md).
-
-Добавлен стандартный источник **XInput** для совместимых геймпадов разных брендов: уровни заряда вместо выдуманных процентов. Также включены экспериментальные модули клавиатур GLW и V9 Turbo+. Подробнее: [совместимость и ограничения](SUPPORTED_DEVICES.md).
-
-Добавлена экспериментальная поддержка вариантов A5/AX5, классических приёмников семейств L7/M7/A7 и новых приёмников K7 V2. Новые модели ещё не проверены в этом проекте на оборудовании. Полная [таблица моделей и USB ID](SUPPORTED_DEVICES.md).
-
-| Устройство | Подключение | VID:PID | Проверка |
-|---|---|---|---|
-| MCHOSE X9 | USB-приёмник 2,4 ГГц | `3837:6045` | Проверено на реальном устройстве |
-| MCHOSE AX5 Pro Max | USB-приёмник 2,4 ГГц | `2023:F024` | Проверено на реальном устройстве |
-| MCHOSE AX5 Pro Max | USB-кабель | `2023:F022` | Реализовано, на устройстве не проверено |
-
-Для дополнительных экранов Windows должна показывать панели задач на этих экранах. Поддерживаются горизонтальные панели задач. История заряда и фирменные протоколы классического Bluetooth пока не реализованы. Протокол X9 не сообщает состояние зарядки. Если устройство не отвечает, последнее значение явно помечается как старое.
+Точные USB ID, форматы отчётов, подключения и проверки — в [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md). Грубые значения остаются уровнями или ступенями `n/max`, без выдуманной точности процентов. Запрос X9 не сообщает состояние зарядки. История заряда и фирменные протоколы классического Bluetooth пока не реализованы. Windows должна показывать горизонтальную панель задач на каждом выбранном мониторе.
 
 ### Сборка и запуск
 

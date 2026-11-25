@@ -153,6 +153,35 @@ class Tests {
   Check(JabraLinkBatteryDriver.Parse(JabraLinkBatteryDriver.Request(0x22),0x22)==null,"Jabra request echo excluded");
   jabra[4]=0xCF;Check(JabraLinkBatteryDriver.Parse(jabra,0x22)==null,"Jabra declared length validated");
   Check(!new CorsairVoidBatteryDriver().Matches(new HidCollection{Vid=0x1B1C,Pid=0xFFFF,Page=0xFFC5,Usage=1,Input=5,Output=2}),"Corsair unsupported PID excluded");
+  Check(LogitechBatterySource.ParseLegacy(0x0D,new byte[]{75,0,0x21}).Percent==75,"Logitech HID++ 1 battery percentage");
+  Check(LogitechBatterySource.ParseLegacy(7,new byte[]{7,0}).Level==BatteryLevel.Full,"Logitech HID++ 1 discrete full");
+  Check(LogitechBatterySource.ParseLegacy(7,new byte[]{2,0}).Level==BatteryLevel.Low,"Logitech HID++ 1 coarse low");
+  Check(LogitechBatterySource.ParseLegacy(7,new byte[]{8,0})==null,"Logitech HID++ 1 invalid code");
+  Check(LogitechBatterySource.ParseLegacy(0x0D,new byte[]{0,0,0})==null,"Logitech HID++ 1 unavailable sentinel");
+  Check(LogitechBatterySource.Matches(new HidCollection{Vid=0x046D,Page=0xFF00,Usage=1,Input=7,Output=7}),"Logitech short report collection");
+  var prox2=new byte[64];prox2[0]=0x51;prox2[1]=0x0B;prox2[8]=4;prox2[10]=64;prox2[12]=2;Check(LogitechProX2BatteryDriver.Parse(prox2).Percent==64 && LogitechProX2BatteryDriver.Parse(prox2).Charging,"Logitech PRO X 2 legacy reply");
+  prox2[1]=3;Check(LogitechProX2BatteryDriver.Parse(prox2)==null,"Logitech PRO X 2 acknowledgement excluded");
+  Check(SteelSeriesClassicBatteryDriver.Parse(0x12B3,new byte[]{6,0x12,0,63}).Percent==63,"Arctis 1 battery reply");
+  Check(SteelSeriesClassicBatteryDriver.Parse(0x12B3,new byte[]{6,0x12,1,63})==null,"Arctis 1 offline");
+  Check(SteelSeriesClassicBatteryDriver.Parse(0x1260,new byte[]{6,0x18,80}).Percent==80,"Arctis 7 battery reply");
+  Check(SteelSeriesClassicBatteryDriver.Parse(0x1260,new byte[]{6,0x18,0})==null,"Arctis 7 unavailable zero");
+  Check(SteelSeriesClassicBatteryDriver.Parse(0x12C2,new byte[]{0,0x20,0,0,130,1}).Steps==30,"Arctis 9 native steps");
+  Check(SteelSeriesClassicBatteryDriver.ParseProLevel(new byte[]{0,4}).Steps==4,"Arctis Pro native steps");
+  var cloud2=new byte[]{0x0B,0,0xBB,2,0,0,0,72};Check(HyperXCloudTwoBatteryDriver.Parse(cloud2,2).Percent==72,"Kingston Cloud II battery reply");
+  Check(HyperXCloudTwoBatteryDriver.Parse(cloud2,3)==null,"Kingston Cloud II command mismatch");
+  cloud2[3]=3;cloud2[4]=1;Check(HyperXCloudTwoBatteryDriver.Parse(cloud2,3).Charging,"Kingston Cloud II charging");
+  Check(HyperXCloudTwoBatteryDriver.Parse(HyperXCloudTwoBatteryDriver.Request(2),2)==null,"Kingston Cloud II request echo excluded");
+  var caps=new byte[72];caps[0]=6;caps[4]=2;caps[15]=1;caps[18]=8;caps[20]=1;caps[44]=100;caps[56]=0x20;Check(HidBatteryFeature.ParseCaps(caps).Report==0,"standard HID zero report ID supported");
+  caps[2]=9;caps[6]=3;Check(HidBatteryFeature.ParseCaps(caps).Report==9 && HidBatteryFeature.ParseCaps(caps).Link==3,"standard HID report and link collection");
+  caps[0]=1;Check(HidBatteryFeature.ParseCaps(caps)==null,"standard HID wrong usage page excluded");caps[0]=6;
+  caps[44]=255;Check(HidBatteryFeature.ParseCaps(caps)==null,"standard HID non-percent logical range excluded");caps[44]=100;
+  caps[20]=2;Check(HidBatteryFeature.ParseCaps(caps)==null,"standard HID value arrays excluded");caps[20]=1;
+  caps[4]=3;Check(HidBatteryFeature.ParseCaps(caps)==null,"standard HID constant field excluded");caps[4]=2;
+  caps[12]=1;Check(HidBatteryFeature.ParseCaps(caps)==null,"standard HID ambiguous range excluded");caps[12]=0;
+  Check(!new StandardHidBatteryDriver().Matches(new HidCollection{Feature=65}),"HID without declared battery usage not queried");
+  Check(new StandardHidBatteryDriver().Matches(new HidCollection{Feature=65,BatteryFeature=HidBatteryFeature.ParseCaps(caps)}),"HID explicitly declared battery usage matched");
+  Check(new StandardHidBatteryDriver().Matches(new HidCollection{Input=20,BatteryInput=HidBatteryFeature.ParseCaps(caps)}),"HID input battery snapshots supported");
+  Check(!new StandardHidBatteryDriver().Matches(new HidCollection{Input=5000,BatteryInput=HidBatteryFeature.ParseCaps(caps)}),"HID oversized input snapshot excluded");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}
