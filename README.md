@@ -45,6 +45,9 @@ Hardware-tested in this project: **MCHOSE X9** and **MCHOSE AX5 Pro Max**. Other
 | Other mice | Selected AJAZZ, VGN Dragonfly 3 Pro, Darmoshark M3/M3S, Attack Shark, Delux M900 Pro and Inphic receivers |
 | Keychron | M1/M2/M3/M6/M7 families through the listed 1K Link receivers |
 | AULA / BY | Selected wireless keyboard receivers using the 20-byte battery protocol |
+| Redragon / SinoWealth | Compatible feature-only 258A:002F mouse receivers |
+| WLMOUSE | Listed Beast X / Mini / Mini Pro / Max receivers |
+| Endgame Gear / NZXT | OP1w/XM2w 4K families and Lift Elite |
 | MCHOSE | X9, V9 Turbo+, A5/AX5, selected classic/modern mice and GLW keyboards |
 
 See [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md) for exact USB IDs, report formats, connection restrictions and test status. Some devices expose only coarse levels; these remain levels or `n/max` steps, rather than invented precise percentages. The X9 read does not provide charging state. Battery history and manufacturer-specific classic Bluetooth protocols are not implemented. Windows must show a horizontal taskbar on each selected monitor.
@@ -159,6 +162,9 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 | Другие мыши | Выбранные AJAZZ, VGN Dragonfly 3 Pro, Darmoshark M3/M3S, Attack Shark, Delux M900 Pro и Inphic |
 | Keychron | Семейства M1/M2/M3/M6/M7 через перечисленные приёмники Link 1K |
 | AULA / BY | Выбранные приёмники клавиатур с 20-байтовым протоколом батареи |
+| Redragon / SinoWealth | Совместимые приёмники мышей 258A:002F с feature-only коллекцией |
+| WLMOUSE | Перечисленные приёмники Beast X / Mini / Mini Pro / Max |
+| Endgame Gear / NZXT | Семейства OP1w/XM2w 4K и Lift Elite |
 | MCHOSE | X9, V9 Turbo+, A5/AX5, выбранные классические/новые мыши и клавиатуры GLW |
 
 Точные USB ID, форматы отчётов, подключения и проверки — в [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md). Грубые значения остаются уровнями или ступенями `n/max`, без выдуманной точности процентов. Запрос X9 не сообщает состояние зарядки. История заряда и фирменные протоколы классического Bluetooth пока не реализованы. Windows должна показывать горизонтальную панель задач на каждом выбранном мониторе.

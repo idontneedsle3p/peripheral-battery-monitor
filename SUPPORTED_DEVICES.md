@@ -45,6 +45,10 @@
 | Attack Shark X11 / X3 Max / V3 Pro / V6 / X6 / R1; IO Nova SE | `1D57:FA60` receiver; model marker in report `03`, interface `02`, page `000A`, 5-byte input | Experimental; passive reads / Экспериментально; пассивное чтение |
 | Delux M900 Pro / Inphic IN10R MAX / IN10 MAX | `1D57:FA65` KP 8K receiver; model marker, same passive collection | Experimental / Экспериментально |
 | IO Nova SE cable / кабель | `1D57:2015`, same passive collection / та же пассивная коллекция | Experimental / Экспериментально |
+| Redragon / SinoWealth compatible mice (M602-KS / M690 Pro / M910-KS / M811 Pro family) | `258A:002F`, interface `01`, `FF00:0001`, feature 8 bytes, no input/output | Experimental; shared ID is not a model guarantee / Экспериментально; общий ID не гарантирует конкретную модель |
+| WLMOUSE Beast X / Mini / Mini Pro / Max | `36A7:A887` / `A885` / `A868` / `A880`, page `FFFF`, feature 65 bytes | Experimental / Экспериментально |
+| NZXT Lift Elite | `1E71:2101` receiver / приёмник, `2129` cable / кабель; `FFCA:0001`, 64/65-byte reports | Experimental / Экспериментально |
+| Endgame Gear OP1w 4k / OP1w 4k v2 / XM2w 4k / XM2w 4k v2 | `3367:1970` receiver / приёмник; `FF01:0002`, feature 64 bytes; inner PIDs `1972`, `1984`, `1968`, `1982` | Experimental / Экспериментально |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -187,3 +191,24 @@ Darmoshark сначала читает привязку и связь с мыш�
 Attack Shark / KP 8K / IO Nova читаются пассивно: запросы и команды настройки не отправляются. Читается только указанная коллекция статуса, ожидание ограничено 5,5 секунды. Два одинаковых последовательных кадра подтверждают показание; одиночный кадр переподключения со значением 100% от батареи отбрасывается. Название выбирается по маркеру модели. X6/R1 показывает штатные ступени `n/10`. Для `FA60` внешнее питание не означает зарядку; состояние 2 у `FA65` означает полный заряд. При внешнем питании значение может быть приблизительным или временно не меняться. Всем моделям этого раздела нужна аппаратная проверка в этом проекте.
 
 References / Источники: [AJ139 protocol](https://github.com/werquess/ajazz-aj139-macos/blob/main/PROTOCOL.md), [AJ179 capture research](https://github.com/HeyOkay/HaloBattery/blob/main/providers/ajazz.py), [Darmoshark M3 protocol](https://github.com/Barba2k2/darmoshark-m3-configurator/blob/main/PROTOCOL.md), [Attack Shark passive protocol](https://github.com/daeoxide/attackshark-battery-windows), [Delux M900 research](https://github.com/AeonArcHQ/omarchy-delux-m900/blob/main/docs/re/findings.md).
+## SinoWealth, WLMOUSE, NZXT and Endgame Gear
+
+SinoWealth support is restricted to the exact feature-only receiver collection above. It reads link status `05:80` before battery `05:90`, because the receiver can return cached battery with the mouse off. A linked mouse, battery marker `11` and level 0–100 are required. The configuration report `08` is never used. Since `258A:002F` is shared across products, the product string is used when meaningful; a generic receiver stays named “Wireless mouse”. No charging flag is inferred.
+
+WLMOUSE support is restricted to the four listed receiver PIDs. The feature reply must contain the status command `02:00:83` with `A1`/`A2` at the documented offset, with or without a leading zero report ID. Request echoes and invalid levels are rejected. The explicit charging byte is used.
+
+NZXT sends only the telemetry request `4E:02:81:00:B0`. The output size chooses whether report ID zero is required; a `4E:E5` acknowledgement is not a measurement. The percentage is a 16-bit little-endian field, and charging uses bit 0 of the telemetry flags. Cable and receiver remain separate instances; this module does not guess whether two endpoints belong to the same physical mouse.
+
+Endgame Gear queries battery `B4`, handles busy/asleep states and reads identity `0E` for a known model name. Recovery probes `0F` are sent only after an invalid or missing battery response, never after a successful or explicitly asleep response. No charging flag is known for these receivers, so charging is not inferred. The shared 4K receiver is not support for all Endgame Gear products.
+
+SinoWealth ограничен указанной feature-only коллекцией приёмника. Перед батареей `05:90` читается связь `05:80`: приёмник может хранить старый заряд выключенной мыши. Требуются подтверждённая связь, маркер батареи `11` и уровень 0–100. Отчёт настройки `08` не используется. ID `258A:002F` общий, поэтому используется содержательное USB-название; общий приёмник остаётся «Wireless mouse». Зарядка не угадывается.
+
+WLMOUSE ограничен четырьмя перечисленными PID. Feature-ответ должен содержать `02:00:83` и `A1`/`A2` на документированном смещении, с ведущим нулевым report ID или без него. Эхо запроса и неверные уровни исключаются. Используется явный байт зарядки.
+
+NZXT отправляет только запрос телеметрии `4E:02:81:00:B0`. Размер output определяет необходимость ведущего нулевого report ID; подтверждение `4E:E5` не считается замером. Процент читается как 16-битное поле little-endian, зарядка — по биту 0 флагов. Кабель и приёмник остаются отдельными экземплярами: принадлежность одной физической мыши не угадывается.
+
+Endgame Gear читает батарею `B4`, обрабатывает занятость/сон и запрашивает идентификацию `0E` для названия модели. Восстановительные запросы `0F` выполняются только после неверного ответа или ошибки чтения, а не после успешного ответа или явного сна. Флаг зарядки для этих приёмников неизвестен и не выводится косвенно. Общий приёмник 4K не означает поддержку всех устройств Endgame Gear.
+
+All additions here are experimental and need hardware confirmation. / Все дополнения раздела экспериментальные и требуют аппаратной проверки.
+
+References / Источники: [SinoWealth / Redragon capture](https://github.com/OpenMouse-Project/mouse-protocol/blob/main/docs/redragon-m690-pro-testing.md), [WLMOUSE status protocol](https://github.com/HeyOkay/HaloBattery/blob/main/providers/wlmouse.py), [NZXT telemetry](https://github.com/HeyOkay/HaloBattery/blob/main/providers/nzxt.py), [Endgame Gear protocol research](https://github.com/johanneszab/vole/blob/main/re/PROTOCOL.md).

@@ -243,6 +243,30 @@ class Tests {
   var reconnect=new byte[]{3,0x55,0x40,1,100};Check(AttackSharkBatteryDriver.NeedsConfirmation(reconnect),"Attack Shark unconfirmed 100 percent reconnect excluded");Check(AttackSharkBatteryDriver.Same(reconnect,(byte[])reconnect.Clone()),"Attack Shark consecutive frame confirmation");
   reconnect[2]=0x50;Check(AttackSharkBatteryDriver.Parse(reconnect,0xFA60)==null,"Attack Shark configuration ACK excluded");
   Check(!new AttackSharkBatteryDriver().Matches(new HidCollection{Vid=0x1D57,Pid=0xFA60,Page=1,Input=5,Path="hid&mi_02"}),"Attack Shark ordinary input collection excluded");
+  var sinoLink=new byte[]{5,0x80,1,1,0,0,0,0};var sinoBattery=new byte[]{5,0x90,0x11,58,0,0,0,0};
+  Check(SinoWealthBatteryDriver.Linked(sinoLink) && SinoWealthBatteryDriver.Level(sinoBattery)==58,"SinoWealth captured feature replies");
+  int sinoCalls=0;Check(SinoWealthBatteryDriver.ReadLevel(cmd=>{sinoCalls++;return cmd==0x80?sinoLink:sinoBattery;})==58 && sinoCalls==2,"SinoWealth link precedes battery read");
+  sinoLink[2]=0;sinoCalls=0;Check(SinoWealthBatteryDriver.ReadLevel(cmd=>{sinoCalls++;return sinoLink;})==null && sinoCalls==1,"SinoWealth no battery query with mouse asleep");
+  sinoBattery[2]=0x10;Check(SinoWealthBatteryDriver.Level(sinoBattery)==null,"SinoWealth cable reply not capacity");sinoBattery[2]=0x11;sinoBattery[3]=101;Check(SinoWealthBatteryDriver.Level(sinoBattery)==null,"SinoWealth invalid battery range");
+  Check(new SinoWealthBatteryDriver().Matches(new HidCollection{Vid=0x258A,Pid=0x002F,Page=0xFF00,Usage=1,Feature=8,Path="hid&mi_01"}),"SinoWealth exact feature-only receiver");
+  Check(!new SinoWealthBatteryDriver().Matches(new HidCollection{Vid=0x258A,Pid=0x002F,Page=0xFF00,Usage=1,Feature=8,Input=8,Path="hid&mi_01"}),"SinoWealth other receiver collection excluded");
+  Check(new SinoWealthBatteryDriver().Describe(new HidCollection{Product="2.4G Wireless Receiver"}).Name=="Wireless mouse","SinoWealth shared ID does not guess model");
+  var wl=new byte[65];Array.Copy(new byte[]{0xA1,0,2,2,0,0x83,0,77},wl,8);Check(WlMouseBatteryDriver.Parse(wl).Percent==77,"WLMOUSE status at offset zero");
+  Array.Clear(wl,0,wl.Length);Array.Copy(new byte[]{0,0xA2,0,2,2,0,0x83,1,50},wl,9);Check(WlMouseBatteryDriver.Parse(wl).Percent==50 && WlMouseBatteryDriver.Parse(wl).Charging,"WLMOUSE leading report zero and charging");
+  Check(WlMouseBatteryDriver.Parse(WlMouseBatteryDriver.Request())==null,"WLMOUSE request echo excluded");wl[8]=101;Check(WlMouseBatteryDriver.Parse(wl)==null,"WLMOUSE invalid percent");wl[8]=50;wl[6]=0x82;Check(WlMouseBatteryDriver.Parse(wl)==null,"WLMOUSE unrelated command");
+  Check(!new WlMouseBatteryDriver().Matches(new HidCollection{Vid=0x36A7,Pid=0xFFFF,Page=0xFFFF,Feature=65}),"WLMOUSE unknown product not probed");
+  var nz=new byte[64];nz[0]=0x4E;nz[1]=2;nz[2]=0x97;nz[17]=77;nz[22]=2;Check(NzxtLiftBatteryDriver.Parse(nz).Percent==77 && !NzxtLiftBatteryDriver.Parse(nz).Charging,"NZXT telemetry and charge bit mask");
+  nz[22]=3;Check(NzxtLiftBatteryDriver.Parse(nz).Charging,"NZXT explicit charging bit");nz[18]=1;Check(NzxtLiftBatteryDriver.Parse(nz)==null,"NZXT validates full 16-bit percentage");nz[18]=0;
+  var nz65=new byte[65];Array.Copy(nz,0,nz65,1,64);Check(NzxtLiftBatteryDriver.Parse(nz65).Percent==77,"NZXT unnumbered telemetry offset");
+  Check(NzxtLiftBatteryDriver.Request(64)[0]==0x4E && NzxtLiftBatteryDriver.Request(65)[1]==0x4E,"NZXT output report matches collection size");
+  nz[1]=0xE5;Check(NzxtLiftBatteryDriver.Parse(nz)==null,"NZXT ACK excluded");
+  var eg=new byte[64];eg[0]=0xA1;eg[1]=1;eg[16]=73;Check(EndgameGearBatteryDriver.Level(eg)==73,"Endgame Gear battery status");
+  var egCommands=new System.Collections.Generic.List<string>();Check(EndgameGearBatteryDriver.ReadLevel((cmd,target)=>{egCommands.Add(cmd+":"+target);return eg;})==73 && egCommands.Count==1,"Endgame Gear healthy poll does not probe");
+  eg[1]=8;egCommands.Clear();Check(EndgameGearBatteryDriver.ReadLevel((cmd,target)=>{egCommands.Add(cmd+":"+target);return eg;})==null && egCommands.Count==1,"Endgame Gear sleeping mouse does not trigger recovery");
+  eg[1]=1;egCommands.Clear();Check(EndgameGearBatteryDriver.ReadLevel((cmd,target)=>{egCommands.Add(cmd+":"+target);return egCommands.Count==1?null:eg;})==73 && string.Join(",",egCommands)=="180:0,15:1,15:15,180:0","Endgame Gear bounded recovery sequence after failure");
+  eg[1]=3;Check(EndgameGearBatteryDriver.Level(eg)==null,"Endgame Gear busy buffer not accepted");eg[1]=1;eg[16]=101;Check(EndgameGearBatteryDriver.Level(eg)==null,"Endgame Gear invalid percentage");
+  eg[16]=0x67;eg[17]=0x33;eg[18]=0x84;eg[19]=0x19;Check(EndgameGearBatteryDriver.Model(eg)=="Endgame Gear OP1w 4k v2","Endgame Gear inner product identity");eg[17]=0;Check(EndgameGearBatteryDriver.Model(eg)==null,"Endgame Gear foreign identity rejected");
+  Check(EndgameGearBatteryDriver.Level(EndgameGearBatteryDriver.Request(0xB4,0))==null,"Endgame Gear request echo excluded");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void Ajazz179Checksum(byte[] r){int sum=0;for(int i=5;i<32;i++)sum+=r[i];r[32]=(byte)sum;}
