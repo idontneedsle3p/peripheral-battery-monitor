@@ -12,6 +12,7 @@ using Microsoft.Win32;
 static class Program {
  public static string Data=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MyMchose");
  [STAThread] static int Main(string[] args){
+  if(args.Length>0 && args[0]=="--quit"){try{using(var signal=EventWaitHandle.OpenExisting("Local\\PeripheralBatteryMonitor.Stop"))signal.Set();}catch(WaitHandleCannotBeOpenedException){}return 0;}
   L.Load(Path.Combine(Data,"language.txt"));Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
   if(args.Length>0 && args[0]=="--render-test"){
    foreach(int count in new[]{0,1,3,8,20})foreach(float dpi in new[]{1f,1.25f,2f}){
@@ -37,6 +38,7 @@ class TrayApplication:ApplicationContext {
  Reading[] values=new Reading[0];
  readonly NotifyIcon[] tray=new NotifyIcon[1];readonly System.Collections.Generic.HashSet<string> warned=new System.Collections.Generic.HashSet<string>();
  readonly System.Windows.Forms.Timer timer=new System.Windows.Forms.Timer();
+ readonly EventWaitHandle stopSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\PeripheralBatteryMonitor.Stop");
  readonly Strip strip;readonly ToolStripMenuItem refresh=new ToolStripMenuItem(L.T("Обновить")),status=new ToolStripMenuItem(L.T("Подключение…")){Enabled=false},devicesItem=new ToolStripMenuItem(L.T("Устройства"));
  bool busy,quitting;ContextMenuStrip menu;ToolStripMenuItem widgetItem,startItem,monitorItem,languageItem,ruItem,enItem,logItem,exitItem;DateTime? updated;string pollError;DateTime nextPoll=DateTime.MinValue;
  public TrayApplication(){
@@ -53,7 +55,7 @@ class TrayApplication:ApplicationContext {
   monitorItem=new ToolStripMenuItem(L.T("Мониторы"));menu.Items.Insert(5,monitorItem);monitorItem.DropDownOpening+=(s,e)=>BuildMonitorMenu();BuildMonitorMenu();
   languageItem=new ToolStripMenuItem("Language / Язык");ruItem=new ToolStripMenuItem("Русский");enItem=new ToolStripMenuItem("English");languageItem.DropDownItems.Add(ruItem);languageItem.DropDownItems.Add(enItem);menu.Items.Insert(6,languageItem);
   ruItem.Click+=(s,e)=>ChangeLanguage("ru");enItem.Click+=(s,e)=>ChangeLanguage("en");ApplyLanguage();
-  timer.Interval=1000;timer.Tick+=(s,e)=>{if(DateTime.UtcNow>=nextPoll)Poll();};
+  timer.Interval=1000;timer.Tick+=(s,e)=>{if(stopSignal.WaitOne(0)){ExitThread();return;}if(DateTime.UtcNow>=nextPoll)Poll();};
   // Creating the menu handle installs the WinForms synchronization context for async polling.
   var handle=menu.Handle;
   BuildDeviceMenu();if(widgetItem.Checked)strip.Show();timer.Start();Poll();
@@ -69,7 +71,7 @@ class TrayApplication:ApplicationContext {
  internal void VerifyLanguages(string path){string saved=L.Language;foreach(string language in new[]{"ru","en"}){L.Set(language);ApplyLanguage();VerifyTray(path+"."+language);if(refresh.Text!=(language=="ru"?"Обновить":"Refresh"))throw new InvalidOperationException("Language did not change");}L.Set(saved);ApplyLanguage();}
  void ShowMenu(){if(!quitting)menu.Show(Cursor.Position);}
  protected override void ExitThreadCore(){
-  if(quitting)return;quitting=true;timer.Stop();timer.Dispose();strip.Dispose();
+  if(quitting)return;quitting=true;timer.Stop();timer.Dispose();stopSignal.Dispose();strip.Dispose();
   tray[0].Visible=false;var icon=tray[0].Icon;tray[0].Dispose();icon.Dispose();menu.Dispose();base.ExitThreadCore();
  }
  internal void VerifyTray(string path){

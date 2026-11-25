@@ -182,6 +182,20 @@ class Tests {
   Check(new StandardHidBatteryDriver().Matches(new HidCollection{Feature=65,BatteryFeature=HidBatteryFeature.ParseCaps(caps)}),"HID explicitly declared battery usage matched");
   Check(new StandardHidBatteryDriver().Matches(new HidCollection{Input=20,BatteryInput=HidBatteryFeature.ParseCaps(caps)}),"HID input battery snapshots supported");
   Check(!new StandardHidBatteryDriver().Matches(new HidCollection{Input=5000,BatteryInput=HidBatteryFeature.ParseCaps(caps)}),"HID oversized input snapshot excluded");
+  var compx=CompxMouseBatteryDriver.Request(4);Check(CompxMouseBatteryDriver.Valid(compx,4),"CompX checksum request");Check(CompxMouseBatteryDriver.ParsePower(compx)==null,"CompX blank power echo excluded");
+  compx[6]=73;compx[7]=1;compx[8]=15;compx[9]=160;CompxMouseBatteryDriver.Checksum(compx);Check(CompxMouseBatteryDriver.ParsePower(compx).Percent==73 && CompxMouseBatteryDriver.ParsePower(compx).Charging,"CompX battery and USB power");
+  compx[16]^=1;Check(CompxMouseBatteryDriver.ParsePower(compx)==null,"CompX invalid checksum");
+  Check(!new CompxMouseBatteryDriver().Matches(new HidCollection{Vid=0x3554,Pid=0xFA09,Page=0xFF02,Usage=2,Input=17,Output=17}),"CompX mouse excludes keyboard receiver");
+  Check(new KeychronMouseBatteryDriver().Matches(new HidCollection{Vid=0x3434,Pid=0xD030,Page=0x008C,Feature=1001}),"Keychron large receiver feature report");
+  var keychron=new byte[]{0x51,6,1,0,0x34,0x34,0x32,0xD0,0,0,0,86,1};Check(KeychronMouseBatteryDriver.Parse(keychron).Name=="Keychron M3" && KeychronMouseBatteryDriver.Parse(keychron).Percent==86,"Keychron inner identity and percentage");
+  keychron[4]=0;Check(KeychronMouseBatteryDriver.Parse(keychron)==null,"Keychron foreign inner VID");keychron[4]=0x34;keychron[11]=101;Check(KeychronMouseBatteryDriver.Parse(keychron)==null,"Keychron invalid percentage");
+  var aula=new byte[20];aula[0]=0x13;aula[1]=0x4A;aula[5]=64;aula[6]=0x10;for(int i=0;i<19;i++)aula[19]+=aula[i];Check(AulaKeyboardBatteryDriver.Parse(aula).Percent==64 && AulaKeyboardBatteryDriver.Parse(aula).Charging,"AULA battery and charging");
+  aula[19]^=1;Check(AulaKeyboardBatteryDriver.Parse(aula)==null,"AULA checksum failure");aula[2]=1;aula[3]=0;aula[19]=0;Check(AulaKeyboardBatteryDriver.Parse(aula)!=null,"BY single-packet zero checksum convention");
+  Check(AulaKeyboardBatteryDriver.Parse(AulaKeyboardBatteryDriver.Request(0))==null,"AULA empty request echo excluded");
+  var aliasDriver=new AliasDriver();var aliasMonitor=new BatteryMonitor(aliasDriver);var aliasReadings=aliasMonitor.Poll(cols,s=>{});Check(aliasReadings.Length==1 && aliasDriver.Calls==2 && aliasReadings[0].Percent==55,"alternative HID collection fallback and one logical device");
+  aliasMonitor.Poll(cols,s=>{});Check(aliasDriver.Calls==2,"logical device polling interval covers aliases");aliasMonitor.Poll(cols,s=>{},true);Check(aliasDriver.Calls==4,"manual refresh retries alternate HID channel");
+  var cold=new SilentDriver{Fail=true,Interval=TimeSpan.FromMinutes(1)};var coldMonitor=new BatteryMonitor(cold);coldMonitor.Poll(cols,s=>{});coldMonitor.Poll(cols,s=>{});Check(cold.Calls==3,"silent unrecognized device respects polling interval");
+  coldMonitor.Poll(new System.Collections.Generic.List<HidCollection>(),s=>{});cold.Fail=false;Check(coldMonitor.Poll(cols,s=>{}).Length==3 && cold.Calls==6,"silent device reconnect resets polling interval");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}
@@ -197,3 +211,9 @@ class FakeDriver:IBatteryDriver,IBatteryPollingPolicy {
  public Reading Read(HidCollection c,Action<string> log){Calls++;if(Throw)throw new Exception("test failure");var r=Describe(c);if(!Fail){if(Discrete)r.Level=BatteryLevel.Low;else r.Percent=Level;r.Time=DateTime.Now;r.Charging=true;r.State="Подключено";}return r;}
 }
 class SilentDriver:FakeDriver,IRequireBatteryReading {}
+class AliasDriver:IBatteryDriver,IBatteryIdentityProvider,IBatteryPollingPolicy,IRequireBatteryReading {
+ public int Calls;public string Id{get{return "alias-test";}}public TimeSpan MinimumPollInterval{get{return TimeSpan.FromMinutes(1);}}
+ public string Identity(HidCollection c){return "one-physical-device";}public bool Matches(HidCollection c){return c.Vid==123;}
+ public Reading Describe(HidCollection c){return new Reading("Alias device");}
+ public Reading Read(HidCollection c,Action<string> log){Calls++;return c.Path=="a"?Describe(c):new Reading("Alias device"){Percent=55,Time=DateTime.Now};}
+}

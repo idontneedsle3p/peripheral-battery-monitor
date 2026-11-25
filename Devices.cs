@@ -25,36 +25,39 @@ public interface IBatteryDriver {
 }
 public interface IBatteryPollingPolicy {TimeSpan MinimumPollInterval{get;}}
 public interface IRequireBatteryReading {}
+public interface IBatteryIdentityProvider {string Identity(HidCollection collection);}
 public sealed class BatteryMonitor {
  readonly IBatteryDriver[] drivers;
  readonly Dictionary<string,Reading> known=new Dictionary<string,Reading>(StringComparer.OrdinalIgnoreCase);
  readonly Dictionary<string,DateTime> lastPoll=new Dictionary<string,DateTime>(StringComparer.OrdinalIgnoreCase);
  public BatteryMonitor(params IBatteryDriver[] modules){drivers=modules;}
  public Reading[] Poll(List<HidCollection> collections,Action<string> log,bool force=false){
-  var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+  var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var attemptedPaths=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var queried=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var successful=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
   foreach(var c in collections){
    var driver=drivers.FirstOrDefault(d=>d.Matches(c));if(driver==null)continue;
-   string id=driver.Id+":"+c.Path;if(!seen.Add(id))continue;
+   if(!attemptedPaths.Add(driver.Id+":"+c.Path))continue;var identity=driver as IBatteryIdentityProvider;string id=driver.Id+":"+(identity==null?c.Path:identity.Identity(c));seen.Add(id);if(successful.Contains(id))continue;
    var policy=driver as IBatteryPollingPolicy;Reading cached;DateTime attempted;
-   if(!force && policy!=null && known.TryGetValue(id,out cached) && cached.State!="Отключено" && lastPoll.TryGetValue(id,out attempted) && DateTime.UtcNow-attempted<policy.MinimumPollInterval)continue;
-   lastPoll[id]=DateTime.UtcNow;
+   if(!force && !queried.Contains(id) && policy!=null && (!known.TryGetValue(id,out cached) || cached.State!="Отключено") && lastPoll.TryGetValue(id,out attempted) && DateTime.UtcNow-attempted<policy.MinimumPollInterval)continue;
+   queried.Add(id);lastPoll[id]=DateTime.UtcNow;
    Reading current;
    try{current=driver.Read(c,log);if(current==null)throw new InvalidOperationException("Пустой ответ модуля");}
    catch(Exception e){log(driver.Id+": "+e.Message);current=driver.Describe(c);current.State="Ошибка чтения";}
    current.Id=id;var description=driver.Describe(c);current.Kind=description.Kind;current.Experimental=description.Experimental;Reading previous;
    if(current.Percent.HasValue && (current.Percent<0 || current.Percent>100)){current.Percent=null;current.State="Некорректный заряд";}
    if(current.Steps.HasValue && (current.MaxSteps<=0 || current.Steps<0 || current.Steps>current.MaxSteps)){current.Steps=null;current.State="Некорректный заряд";}
+   if(current.HasBattery)successful.Add(id);
    if(driver is IRequireBatteryReading && !current.HasBattery && !known.ContainsKey(id))continue;
    if(!current.HasBattery && known.TryGetValue(id,out previous) && previous.HasBattery){current.Percent=previous.Percent;current.Level=previous.Level;current.Steps=previous.Steps;current.MaxSteps=previous.MaxSteps;current.Time=previous.Time;current.IsStale=true;current.Charging=false;current.State="Нет ответа · последнее значение";}
    known[id]=current;
   }
   foreach(var pair in known)if(!seen.Contains(pair.Key)){pair.Value.IsStale=true;pair.Value.Charging=false;pair.Value.State="Отключено";}
+  foreach(var key in lastPoll.Keys.Where(k=>!seen.Contains(k)).ToArray())lastPoll.Remove(key);
   return known.Values.OrderBy(r=>r.Kind).ThenBy(r=>r.Name).ThenBy(r=>r.Id,StringComparer.OrdinalIgnoreCase).ToArray();
  }
 }
 public static class Devices {
  static readonly IBatterySource[] sources={new XInputSource(),new BluetoothBatterySource(),new LogitechBatterySource()};
- static readonly BatteryMonitor monitor=new BatteryMonitor(new MchoseX9Driver(),new MchoseAx5Driver(),new MchoseClassicDriver(),new MchoseModernDriver(),new MchoseKeyboardDriver(),new RazerBatteryDriver(),new SteelSeriesBatteryDriver(),new PlayStationBatteryDriver(),new SteelSeriesProBatteryDriver(),new CorsairVoidBatteryDriver(),new HyperXBatteryDriver(),new SteelSeriesMouseBatteryDriver(),new JabraLinkBatteryDriver(),new HyperXAlphaBatteryDriver(),new LogitechProX2BatteryDriver(),new SteelSeriesClassicBatteryDriver(),new HyperXCloudTwoBatteryDriver(),new StandardHidBatteryDriver());
+ static readonly BatteryMonitor monitor=new BatteryMonitor(new MchoseX9Driver(),new MchoseAx5Driver(),new MchoseClassicDriver(),new MchoseModernDriver(),new MchoseKeyboardDriver(),new RazerBatteryDriver(),new SteelSeriesBatteryDriver(),new PlayStationBatteryDriver(),new SteelSeriesProBatteryDriver(),new CorsairVoidBatteryDriver(),new HyperXBatteryDriver(),new SteelSeriesMouseBatteryDriver(),new JabraLinkBatteryDriver(),new HyperXAlphaBatteryDriver(),new LogitechProX2BatteryDriver(),new SteelSeriesClassicBatteryDriver(),new HyperXCloudTwoBatteryDriver(),new CompxMouseBatteryDriver(),new KeychronMouseBatteryDriver(),new AulaKeyboardBatteryDriver(),new StandardHidBatteryDriver());
  public static Reading[] Poll(List<HidCollection> colls,Action<string> log,bool force=false){var result=monitor.Poll(colls,log,force).ToList();foreach(var source in sources){try{result.AddRange(source.Poll(log));}catch(Exception e){log(source.GetType().Name+": "+e.Message);}}return result.ToArray();}
  public static int? ParseX9(byte[] r){if(r!=null && r.Length>=4 && r[0]==0x55 && r[1]==0x65 && r[3]==2 && r[2]<=100)return r[2];return null;}
  public static Reading ParseMouse(byte[] r){

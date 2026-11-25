@@ -3,7 +3,8 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
 
-public sealed class RazerBatteryDriver:IBatteryDriver,IRequireBatteryReading {
+public sealed class RazerBatteryDriver:IBatteryDriver,IRequireBatteryReading,IBatteryIdentityProvider {
+ public string Identity(HidCollection c){return LogitechBatterySource.PhysicalKey(c.Path);}
  public string Id{get{return "razer-battery";}}
  public bool Matches(HidCollection c){return c.Vid==0x1532 && c.Feature==91;}
  public Reading Describe(HidCollection c){string name=string.IsNullOrWhiteSpace(c.Product)?"Razer device":c.Product.Trim();string n=name.ToLowerInvariant();var kind=n.Contains("keyboard") || n.Contains("blackwidow") || n.Contains("deathstalker") || n.Contains("huntsman")?DeviceKind.Keyboard:n.Contains("viper") || n.Contains("basilisk") || n.Contains("deathadder") || n.Contains("orochi") || n.Contains("mouse") || n.Contains("pro click")?DeviceKind.Mouse:DeviceKind.Other;return new Reading(name){Kind=kind,Experimental=true,Transport="Razer USB / receiver"};}

@@ -41,6 +41,9 @@ Hardware-tested in this project: **MCHOSE X9** and **MCHOSE AX5 Pro Max**. Other
 | HyperX | Selected Cloud II/II Core/III/III S/Stinger 3/Alpha receivers |
 | Sony | Native DualShock 4, DualSense and DualSense Edge input reports |
 | Jabra | Headset battery queries through listed Link 390 receivers |
+| CompX mice | Selected Pulsar, Kysona, VXE, LAMZU, Zaopin and ATK receivers |
+| Keychron | M1/M2/M3/M6/M7 families through the listed 1K Link receivers |
+| AULA / BY | Selected wireless keyboard receivers using the 20-byte battery protocol |
 | MCHOSE | X9, V9 Turbo+, A5/AX5, selected classic/modern mice and GLW keyboards |
 
 See [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md) for exact USB IDs, report formats, connection restrictions and test status. Some devices expose only coarse levels; these remain levels or `n/max` steps, rather than invented precise percentages. The X9 read does not provide charging state. Battery history and manufacturer-specific classic Bluetooth protocols are not implemented. Windows must show a horizontal taskbar on each selected monitor.
@@ -70,6 +73,8 @@ powershell -ExecutionPolicy Bypass -File .\test.ps1
 ```
 
 Tests cover real protocol replies, request echoes, charging state, invalid commands, truncated packets, out-of-range values, the driver registry, and localization. They do not require connected hardware. Diagnostics read HID device identifiers and battery responses; review the report before publishing it.
+
+For a graceful shutdown from a script, use `PeripheralBatteryMonitor.exe --quit`. Automatic polling respects longer protocol-specific intervals; manual refresh bypasses them.
 
 Settings and the latest log are stored in `%LOCALAPPDATA%\MyMchose`. The selected monitor is remembered while disconnected. Widgets are recreated after Explorer restarts.
 
@@ -149,6 +154,9 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 | HyperX | Выбранные приёмники Cloud II/II Core/III/III S/Stinger 3/Alpha |
 | Sony | Штатные input-отчёты DualShock 4, DualSense и DualSense Edge |
 | Jabra | Заряд гарнитуры через перечисленные приёмники Link 390 |
+| Мыши CompX | Выбранные приёмники Pulsar, Kysona, VXE, LAMZU, Zaopin и ATK |
+| Keychron | Семейства M1/M2/M3/M6/M7 через перечисленные приёмники Link 1K |
+| AULA / BY | Выбранные приёмники клавиатур с 20-байтовым протоколом батареи |
 | MCHOSE | X9, V9 Turbo+, A5/AX5, выбранные классические/новые мыши и клавиатуры GLW |
 
 Точные USB ID, форматы отчётов, подключения и проверки — в [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md). Грубые значения остаются уровнями или ступенями `n/max`, без выдуманной точности процентов. Запрос X9 не сообщает состояние зарядки. История заряда и фирменные протоколы классического Bluetooth пока не реализованы. Windows должна показывать горизонтальную панель задач на каждом выбранном мониторе.
@@ -178,6 +186,8 @@ powershell -ExecutionPolicy Bypass -File .\test.ps1
 ```
 
 Тесты проверяют разбор реальных ответов, эхо запроса, зарядку, неверные команды, обрезанные пакеты и значения вне диапазона. Они не требуют подключённых устройств. Диагностика считывает идентификаторы HID-устройств и ответы батареи; перед публикацией отчёта проверь его содержимое.
+
+Для корректного завершения из скрипта используйте `PeripheralBatteryMonitor.exe --quit`. Фоновый опрос учитывает увеличенные интервалы конкретных протоколов; ручное обновление обходит их.
 
 Настройки и последний журнал находятся в `%LOCALAPPDATA%\MyMchose`. Выбранный монитор сохраняется; если он отключён, настройка остаётся до его возвращения. После перезапуска Explorer виджеты создаются заново.
 

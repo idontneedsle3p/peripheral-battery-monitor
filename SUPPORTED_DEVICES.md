@@ -32,6 +32,9 @@
 | SteelSeries Arctis 7 / 2019 / Pro | `1038:1260`, `12AD`, `1252`, `FF43:0202` | Experimental / Экспериментально |
 | SteelSeries Arctis 9 / Pro Wireless | `1038:12C2`, `1290`, vendor collection on interface `00` | Experimental; raw steps / Экспериментально; ступени |
 | HyperX Cloud II Wireless (Kingston) | `0951:1718`, vendor page, 62-byte output | Experimental / Экспериментально |
+| CompX: Pulsar / Kysona M600 / VXE R1 / LAMZU / Zaopin / ATK | `3554:F508`, `F509`, `F507`, `F57C`, `F57D`, `F5D5`, `F58F`, `F58A`, `F58C`, `F510`, `F50F`, `F527`; `373B:1085`, `10C9`; `3710:5406`, `3415`; `FF02:0002`, 17-byte input/output | Experimental / Экспериментально |
+| Keychron Link 1K mouse receiver / приёмник мыши | `3434:D030`, `D031`; page `008C`, feature report `51` | Experimental / Экспериментально |
+| AULA / BY wireless keyboards / клавиатуры | `3554:FA09`, `FB40`; `41E4:2001`; `FF02:0002` or `FF04:0002`, 20-byte input/output | Experimental / Экспериментально |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -134,3 +137,13 @@ GLW keyboards are automatically queried every 10 minutes to avoid repeatedly wak
 Клавиатуры GLW автоматически опрашиваются раз в 10 минут, чтобы не будить их слишком часто. Ручное **Обновить** выполняет запрос сразу. K87S исключена: у неё другой протокол. Реализована только коллекция FF31; альтернативный путь 0001:0000 пока не заявлен.
 
 Only battery/status queries are implemented. No configuration, lighting, pairing, DPI, or firmware write commands are sent. / Реализованы только запросы заряда/состояния. Команды изменения настроек, подсветки, сопряжения, DPI и прошивки не отправляются.
+
+## CompX, Keychron and AULA / CompX, Keychron и AULA
+
+CompX support uses the listed receiver IDs only. A confirmed wireless link is required before querying battery; checksums, command and range are validated. Shared receiver IDs use family names rather than guessing a precise variant. Keychron support is limited to the 1K Link receivers and feature `51:06` mouse status; stock keyboard firmware and 4K/8K protocols are not included. The inner mouse ID selects the displayed M1/M2/M3/M6/M7 name. AULA/BY checks the 20-byte frame checksum (or the documented BY single-frame exception) and rejects request echoes. A zero level is treated as unavailable. Background AULA polling is limited to once per minute. All these additions still require physical hardware confirmation.
+
+CompX ограничен перечисленными ID: перед запросом батареи требуется подтверждённая связь с мышью; проверяются контрольная сумма, команда и диапазон. Общие ID отображаются названием семейства. Keychron ограничен приёмниками Link 1K и запросом мыши `51:06`; штатные клавиатуры и протоколы 4K/8K не включены. Название M1/M2/M3/M6/M7 выбирается по ID мыши из ответа. AULA/BY проверяет контрольную сумму 20-байтового кадра или документированное исключение BY и отбрасывает эхо запроса. Нулевой уровень считается отсутствием данных. Фоновый опрос AULA выполняется не чаще раза в минуту. Всем этим дополнениям нужна проверка на реальных устройствах.
+
+Alternate HID collections for a supported physical receiver are tried until one returns a valid battery reading, then merged into one entry. This does not merge a receiver with a separate cable connection. / Альтернативные HID-коллекции одного поддерживаемого приёмника перебираются до достоверного ответа и объединяются в одну запись. Это не объединяет приёмник с отдельным кабельным подключением.
+
+Protocol references / Источники: [CompX and related drivers](https://github.com/ferloom/Wireless-Device-Battery-Monitor/tree/main/src/drivers), [VXE R1 battery research](https://github.com/S1berla/vxe-r1-pro-max-battery), [AULA F75 receiver research](https://github.com/ushineko/sanshoku/issues/36).
