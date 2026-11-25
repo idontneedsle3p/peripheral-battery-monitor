@@ -196,6 +196,26 @@ class Tests {
   aliasMonitor.Poll(cols,s=>{});Check(aliasDriver.Calls==2,"logical device polling interval covers aliases");aliasMonitor.Poll(cols,s=>{},true);Check(aliasDriver.Calls==4,"manual refresh retries alternate HID channel");
   var cold=new SilentDriver{Fail=true,Interval=TimeSpan.FromMinutes(1)};var coldMonitor=new BatteryMonitor(cold);coldMonitor.Poll(cols,s=>{});coldMonitor.Poll(cols,s=>{});Check(cold.Calls==3,"silent unrecognized device respects polling interval");
   coldMonitor.Poll(new System.Collections.Generic.List<HidCollection>(),s=>{});cold.Fail=false;Check(coldMonitor.Poll(cols,s=>{}).Length==3 && cold.Calls==6,"silent device reconnect resets polling interval");
+  var g321=new byte[61];Array.Copy(new byte[]{0x27,0x2B,0,0x0B,0,0,0,0,0,0,1,1,1,0,0x4D},g321,15);
+  Check(LogitechG321BatteryDriver.Parse(g321).Percent==77 && !LogitechG321BatteryDriver.Parse(g321).Charging,"G321 captured battery reply without charging inference");
+  g321[14]=0;Check(LogitechG321BatteryDriver.Parse(g321).Percent==0,"G321 zero battery accepted");g321[14]=101;Check(LogitechG321BatteryDriver.Parse(g321)==null,"G321 invalid percentage");g321[14]=77;g321[1]=0x2C;Check(LogitechG321BatteryDriver.Parse(g321)==null,"G321 unrelated command excluded");
+  Check(LogitechG321BatteryDriver.Parse(new byte[14])==null,"G321 truncated report excluded");
+  Check(new LogitechG321BatteryDriver().Matches(new HidCollection{Vid=0x046D,Pid=0x0B39,Path="hid#vid_046d&mi_03",Page=0xFF00,Usage=0x212,Input=61,Feature=67}),"G321 exact battery interface");
+  Check(!new LogitechG321BatteryDriver().Matches(new HidCollection{Vid=0x046D,Pid=0x0B39,Path="hid#vid_046d&mi_00",Page=0xFF00,Usage=0x212,Input=61,Feature=67}),"G321 other interface excluded");
+  var g735=new byte[271];g735[0]=0xF2;g735[16]=2;g735[17]=0x0B;g735[18]=41;g735[20]=1;
+  Check(LogitechG735BatteryDriver.Parse(g735,2).Percent==41 && LogitechG735BatteryDriver.Parse(g735,2).Charging,"G735 wrapped battery response");
+  Check(LogitechG735BatteryDriver.Parse(g735,3)==null,"G735 other feature excluded");g735[17]=0x0C;Check(LogitechG735BatteryDriver.Parse(g735,2)==null,"G735 other software transaction excluded");g735[17]=0x0B;
+  Check(LogitechG735BatteryDriver.Parse(LogitechG735BatteryDriver.Request(2,false),2)==null,"G735 output echo excluded");
+  g735[16]=255;Check(LogitechG735BatteryDriver.Parse(g735,2)==null,"G735 error report excluded");g735[16]=2;g735[18]=101;Check(LogitechG735BatteryDriver.Parse(g735,2)==null,"G735 out of range battery");
+  var blackshark=new byte[64];Array.Copy(new byte[]{2,0x0E,0x50,0x49,8,0xCE,0x2D,0x83,3,0,4,0,0x21,1,1,0x4B},blackshark,16);
+  Check(RazerBlackShark2023BatteryDriver.Value(blackshark,0x21)==75,"BlackShark 2023 captured status");Check(RazerBlackShark2023BatteryDriver.Value(blackshark,0x2A)==null,"BlackShark other command excluded");
+  blackshark[1]=0x0D;Check(RazerBlackShark2023BatteryDriver.Value(blackshark,0x21)==null,"BlackShark unsolicited frame excluded");blackshark[1]=0x0E;blackshark[14]=0;Check(RazerBlackShark2023BatteryDriver.Value(blackshark,0x21)==null,"BlackShark empty ACK excluded");
+  Check(RazerBlackShark2023BatteryDriver.Value(RazerBlackShark2023BatteryDriver.Request(0x21),0x21)==null,"BlackShark request echo excluded");
+  Check(RazerBlackShark2023BatteryDriver.Remote(false)[11]==0 && RazerBlackShark2023BatteryDriver.Remote(true)[11]==1,"BlackShark remote scope frames");
+  var nari=new byte[]{255,15,5,0xFE,0x12,4,0x1F,8,5,3,5,2,0x0D,0xE0,30};Check(RazerNariBatteryDriver.Parse(nari).Percent==30,"Nari captured coarse battery level");
+  nari[11]=9;nari[14]=255;var nc=RazerNariBatteryDriver.Parse(nari);Check(nc.Charging && !nc.Percent.HasValue && nc.Level==BatteryLevel.Unknown,"Nari charging suppresses unrelated level byte");
+  nari[12]=0;nari[13]=0;Check(RazerNariBatteryDriver.Parse(nari)==null,"Nari powered off excluded");nari[12]=0x10;nari[13]=0x80;nari[1]=1;Check(RazerNariBatteryDriver.Parse(nari)==null,"Nari stale dongle copy excluded");
+  nari[1]=15;nari[11]=255;Check(RazerNariBatteryDriver.Parse(nari)==null,"Nari unknown power state excluded");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}

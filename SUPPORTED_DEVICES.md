@@ -35,6 +35,10 @@
 | CompX: Pulsar / Kysona M600 / VXE R1 / LAMZU / Zaopin / ATK | `3554:F508`, `F509`, `F507`, `F57C`, `F57D`, `F5D5`, `F58F`, `F58A`, `F58C`, `F510`, `F50F`, `F527`; `373B:1085`, `10C9`; `3710:5406`, `3415`; `FF02:0002`, 17-byte input/output | Experimental / Экспериментально |
 | Keychron Link 1K mouse receiver / приёмник мыши | `3434:D030`, `D031`; page `008C`, feature report `51` | Experimental / Экспериментально |
 | AULA / BY wireless keyboards / клавиатуры | `3554:FA09`, `FB40`; `41E4:2001`; `FF02:0002` or `FF04:0002`, 20-byte input/output | Experimental / Экспериментально |
+| Logitech G321 LIGHTSPEED | `046D:0B39`; interface `03`, `FF00:0212`, feature `24`, input `27` | Experimental; percentage only / Экспериментально; только процент |
+| Logitech G735 | `046D:0AD8`; `FF03:0001`, 271-byte input/output | Experimental / Экспериментально |
+| Razer Nari | `1532:051C`; `FF00:0001`, feature `FF` | Experimental; reported coarse percentage / Экспериментально; грубый процент устройства |
+| Razer BlackShark V2 Pro (2023) | `1532:0555`; `FF00`, 64-byte input/output | Experimental; 2023 model only / Экспериментально; только модель 2023 |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -147,3 +151,18 @@ CompX ограничен перечисленными ID: перед запро�
 Alternate HID collections for a supported physical receiver are tried until one returns a valid battery reading, then merged into one entry. This does not merge a receiver with a separate cable connection. / Альтернативные HID-коллекции одного поддерживаемого приёмника перебираются до достоверного ответа и объединяются в одну запись. Это не объединяет приёмник с отдельным кабельным подключением.
 
 Protocol references / Источники: [CompX and related drivers](https://github.com/ferloom/Wireless-Device-Battery-Monitor/tree/main/src/drivers), [VXE R1 battery research](https://github.com/S1berla/vxe-r1-pro-max-battery), [AULA F75 receiver research](https://github.com/ushineko/sanshoku/issues/36).
+## Additional Logitech and Razer headsets / Дополнительные гарнитуры Logitech и Razer
+
+G321 uses feature request `24:2B` and accepts only interrupt replies `27:2B:00:0B`; no charging flag is inferred. G735 discovers battery feature `0104` inside its `F2` wrapper and validates feature index and software ID before accepting a result. These are separate from the generic HID++ path.
+
+Nari accepts only fresh feature `FF` status, with a plausible nonzero voltage and known power state. The level is the headset's own coarse percentage; charging hides that byte because it no longer represents battery capacity. A confirmed charging state is displayed with an unknown level. Stale dongle copies, powered-off and malformed reports are discarded. Nari Ultimate/Essential and other PIDs are not included in this module.
+
+BlackShark V2 Pro support here is specifically the 2023 `0555` receiver. It wraps battery/charging reads in temporary remote-mode routing, closes that routing even after a failed query, rejects unrelated status frames and limits background queries to once every two minutes. The 2020 and V3 families use different protocols and are not included. A missing response retains an explicitly stale last reading. All four modules are experimental pending physical tests.
+
+G321 читает feature-запрос `24:2B` и принимает только input-ответ `27:2B:00:0B`; зарядка не угадывается. G735 обнаруживает батарейный feature `0104` в оболочке `F2` и проверяет индекс и software ID. Это отдельные протоколы, не общий HID++.
+
+Nari принимает только свежий feature-статус `FF` с допустимым ненулевым напряжением и известным состоянием питания. Отображается переданный гарнитурой грубый процент; при зарядке этот байт скрывается, поскольку перестаёт означать ёмкость батареи. Подтверждённая зарядка показывается с неизвестным уровнем. Старая копия приёмника, выключенная гарнитура и неверные ответы исключаются. Nari Ultimate/Essential и другие PID этот модуль не включает.
+
+BlackShark V2 Pro здесь означает только приёмник `0555` модели 2023. Чтение батареи и зарядки временно включает маршрутизацию remote mode и завершает её даже после ошибки. Посторонние статусы отбрасываются, фоновый запрос ограничен одним разом в две минуты. Модели 2020 и V3 используют другие протоколы и пока не включены. При отсутствии ответа последнее показание явно помечается устаревшим. Все четыре модуля экспериментальные до проверки на оборудовании.
+
+References / Источники: [G321 protocol](https://github.com/gleyssonsc/g321-studio/blob/main/LightspeedConnection.cs), [G735 protocol](https://github.com/symNistaken/TaskbarVitals/blob/main/src/drivers/logitech_g735.cpp), [BlackShark 2023 protocol](https://github.com/matej-basic/blackshark-battery), [Nari capture](https://github.com/Modzeleczek/RazerNariBatteryLevel).

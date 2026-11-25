@@ -34,8 +34,8 @@ Hardware-tested in this project: **MCHOSE X9** and **MCHOSE AX5 Pro Max**. Other
 | Group | Current coverage |
 |---|---|
 | Standard APIs | Bluetooth LE Battery Service, descriptor-declared HID Battery Strength, XInput controllers |
-| Logitech | HID++ 1.x / 2.x battery devices and selected G PRO X 2 firmware |
-| Razer | Compatible 91-byte battery-report mice and keyboards |
+| Logitech | HID++ 1.x / 2.x battery devices, selected G PRO X 2 firmware, G321 and G735 |
+| Razer | Compatible 91-byte battery-report mice/keyboards, Nari and BlackShark V2 Pro (2023) |
 | SteelSeries | Arctis/Nova/GameBuds headsets, selected Aerox/Prime mice |
 | Corsair | Compatible Void / Void Pro / Void Elite / HS70-family receivers |
 | HyperX | Selected Cloud II/II Core/III/III S/Stinger 3/Alpha receivers |
@@ -147,8 +147,8 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 | Группа | Текущая поддержка |
 |---|---|
 | Стандартные API | Bluetooth LE Battery Service, HID Battery Strength из дескриптора, геймпады XInput |
-| Logitech | Батареи HID++ 1.x / 2.x и выбранные прошивки G PRO X 2 |
-| Razer | Совместимые мыши и клавиатуры с 91-байтовыми отчётами батареи |
+| Logitech | Батареи HID++ 1.x / 2.x, выбранные прошивки G PRO X 2, G321 и G735 |
+| Razer | Совместимые мыши/клавиатуры с 91-байтовыми отчётами, Nari и BlackShark V2 Pro (2023) |
 | SteelSeries | Гарнитуры Arctis/Nova/GameBuds, выбранные мыши Aerox/Prime |
 | Corsair | Совместимые приёмники семейств Void / Void Pro / Void Elite / HS70 |
 | HyperX | Выбранные приёмники Cloud II/II Core/III/III S/Stinger 3/Alpha |
