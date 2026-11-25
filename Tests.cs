@@ -76,6 +76,37 @@ class Tests {
   padConnected=true;Check(!pads.Poll(s=>{})[0].IsStale,"XInput reconnection restores fresh state");
   Check(new XInputSource(i=>new XInputBatteryReply{Error=1167}).Poll(s=>{}).Length==0,"no phantom XInput devices");
   L.Set("en");Check(gamepad.Display=="Low battery" && gamepad.ShortDisplay=="Low","English discrete levels");L.Set("ru");Check(gamepad.Display=="Низкий заряд","Russian discrete levels");
+  Check(BluetoothBatterySource.Parse("a","Mouse",new byte[]{75}).Percent==75,"BLE standard percentage");
+  Check(BluetoothBatterySource.Parse("a","Keyboard",new byte[]{0}).Percent==0,"BLE empty battery valid");
+  Check(BluetoothBatterySource.Parse("a","Mouse",new byte[]{255})==null,"BLE unknown percentage excluded");
+  Check(BluetoothBatterySource.Parse("a","Mouse",new byte[0])==null && BluetoothBatterySource.Parse("a","Mouse",new byte[]{1,2})==null,"BLE malformed characteristic excluded");
+  bool bleOnline=true;var ble=new BluetoothBatterySource(log=>bleOnline?new[]{BluetoothBatterySource.Parse("a","Mouse",new byte[]{50})}:new Reading[0]);
+  Check(ble.Poll(s=>{}).Length==1,"BLE source discovery");bleOnline=false;Check(ble.Poll(s=>{})[0].IsStale,"BLE missed reading stays explicitly stale");bleOnline=true;Check(!ble.Poll(s=>{})[0].IsStale,"BLE reading recovery");
+  byte[] razer=RazerBatteryDriver.Request(0x1F,0x80);Check(RazerBatteryDriver.Parse(razer,0x1F,0x80)==null,"Razer request echo rejected");
+  razer[1]=2;razer[10]=127;RazerBatteryDriver.Checksum(razer);Check(RazerBatteryDriver.Parse(razer,0x1F,0x80)==127,"Razer matching battery reply");
+  Check(RazerBatteryDriver.Parse(razer,0x3F,0x80)==null,"Razer foreign transaction rejected");Check(RazerBatteryDriver.Parse(razer,0x1F,0x84)==null,"Razer foreign command rejected");
+  razer[89]^=1;Check(RazerBatteryDriver.Parse(razer,0x1F,0x80)==null,"Razer CRC mismatch rejected");
+  Check(!new RazerBatteryDriver().Matches(new HidCollection{Vid=0x1532,Feature=90}),"Razer wrong feature length excluded");
+  Check(LogitechBatterySource.Parse(0x1000,new byte[]{56,20,0}).Percent==56,"Logitech battery status percentage");
+  Check(LogitechBatterySource.Parse(0x1004,new byte[]{0,8,0}).Level==BatteryLevel.Full,"Logitech discrete full stays discrete");
+  Check(LogitechBatterySource.Parse(0x1004,new byte[]{0,2,0}).LowBattery,"Logitech discrete low");
+  Check(LogitechBatterySource.Parse(0x1000,new byte[]{101,0,0})==null,"Logitech invalid percentage");
+  byte[] logi=LogitechBatterySource.Request(1,7,1,new byte[0]);logi[4]=55;Check(LogitechBatterySource.Response(logi,1,7,1)[0]==55,"Logitech reply route");
+  Check(LogitechBatterySource.Response(logi,2,7,1)==null && LogitechBatterySource.Response(logi,1,8,1)==null,"Logitech other slot or feature excluded");
+  Check(LogitechBatterySource.PhysicalKey("\\\\?\\hid#vid_046d&pid_c52b&mi_02&col01#7&abc&0000#{guid}")==LogitechBatterySource.PhysicalKey("\\\\?\\hid#vid_046d&pid_c52b&mi_02&col02#7&abc&0001#{guid}"),"Logitech collection grouping");
+  Check(SteelSeriesBatteryDriver.Parse(0x2269,new byte[]{0xB0,3,0,27,0,0,0}).Percent==27,"SteelSeries Nova 3P recorded percentage reply");
+  Check(SteelSeriesBatteryDriver.Parse(0x2232,new byte[]{0xB0,3,0,64,1,0,0}).Charging,"SteelSeries Nova 5 charging");
+  Check(SteelSeriesBatteryDriver.Parse(0x2269,new byte[]{0xB0,2,0,64,0,0,0})==null,"SteelSeries offline response");
+  Check(SteelSeriesBatteryDriver.Parse(0x2202,new byte[]{0xB0,0,3,3,0,0,0}).Level==BatteryLevel.Medium,"SteelSeries steps not invented percent");
+  Check(SteelSeriesBatteryDriver.Parse(0x2317,new byte[]{0xB0,1,1,3,3,12,86}).Percent==12,"SteelSeries weaker active earbud");
+  Check(SteelSeriesBatteryDriver.Parse(0x2317,new byte[]{0xB0,1,1,0,0,12,86})==null,"SteelSeries earbuds in case excluded");
+  Check(SteelSeriesBatteryDriver.Parse(0x2202,new byte[]{0xB0,0,6,3,0,0,0})==null,"SteelSeries invalid discrete level");
+  Check(SteelSeriesBatteryDriver.Parse(0x2269,new byte[]{0xB0,3,0,101,0,0,0})==null,"SteelSeries invalid percentage");
+  Check(SteelSeriesBatteryDriver.Parse(0x2269,new byte[]{0xB0,0,0,0,0,0,0})==null,"SteelSeries empty echo excluded");
+  var silent=new SilentDriver{Fail=true};var silentMonitor=new BatteryMonitor(silent);Check(silentMonitor.Poll(cols,s=>{}).Length==0,"unsupported vendor devices do not create phantom entries");silent.Fail=false;Check(silentMonitor.Poll(cols,s=>{}).Length==3,"vendor entries appear after valid battery replies");
+  var steps=new FakeDriver{Discrete=true};var stepMonitor=new BatteryMonitor(steps);stepMonitor.Poll(cols,s=>{});steps.Fail=true;var oldSteps=stepMonitor.Poll(cols,s=>{});Check(oldSteps[0].Level==BatteryLevel.Low && oldSteps[0].IsStale,"failed discrete HID reading retains stale level");
+  Check(LogitechBatterySource.Parse(0x1004,new byte[]{0,0,0}).Level==BatteryLevel.Unknown,"Logitech missing SOC is not fabricated zero");
+  Check(new BluetoothBatterySource(log=>new Reading[0]).Poll(s=>{}).Length==0,"no phantom Bluetooth devices");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}
@@ -83,9 +114,10 @@ class Tests {
 }
 class FakeDriver:IBatteryDriver,IBatteryPollingPolicy {
  public TimeSpan Interval;public TimeSpan MinimumPollInterval{get{return Interval;}}
- public bool Fail,Throw;public int Calls,Level=50;
+ public bool Fail,Throw,Discrete;public int Calls,Level=50;
  public string Id{get{return "test";}}
  public bool Matches(HidCollection c){return c.Vid==123;}
  public Reading Describe(HidCollection c){return new Reading("Identical model"){Kind=DeviceKind.Mouse};}
- public Reading Read(HidCollection c,Action<string> log){Calls++;if(Throw)throw new Exception("test failure");var r=Describe(c);if(!Fail){r.Percent=Level;r.Time=DateTime.Now;r.Charging=true;r.State="Подключено";}return r;}
+ public Reading Read(HidCollection c,Action<string> log){Calls++;if(Throw)throw new Exception("test failure");var r=Describe(c);if(!Fail){if(Discrete)r.Level=BatteryLevel.Low;else r.Percent=Level;r.Time=DateTime.Now;r.Charging=true;r.State="Подключено";}return r;}
 }
+class SilentDriver:FakeDriver,IRequireBatteryReading {}

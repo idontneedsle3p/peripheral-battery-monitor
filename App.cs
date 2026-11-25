@@ -96,12 +96,12 @@ class TrayApplication:ApplicationContext {
  async void Poll(bool force=false){
   if(busy || quitting)return;busy=true;refresh.Enabled=false;status.Text=L.T("Читаю заряд устройств…");nextPoll=DateTime.UtcNow.AddSeconds(30);
   try{
-   var lines=new System.Collections.Generic.List<string>();var fresh=await Task.Run(()=>{var c=Hid.Enumerate();foreach(var h in c)if(h.Vid==0x2023 || h.Vid==0x3837 || h.Vid==0x5253)lines.Add(h.ToString());return Devices.Poll(c,s=>lines.Add(s),force);});
+   var lines=new System.Collections.Generic.List<string>();var fresh=await Task.Run(()=>{var c=Hid.Enumerate();foreach(var h in c)if(h.Vid==0x2023 || h.Vid==0x3837 || h.Vid==0x5253 || h.Vid==0x046D || h.Vid==0x1532 || h.Vid==0x1038)lines.Add(h.ToString());return Devices.Poll(c,s=>lines.Add(s),force);});
    if(quitting)return;
    values=fresh;
    foreach(var r in values){
     bool current=!r.IsStale && r.Time.HasValue && (DateTime.Now-r.Time.Value).TotalSeconds<10;
-    if(current && (r.Percent.HasValue || r.Level.HasValue)){if((r.Percent.HasValue?r.Percent>20:!r.LowBattery) || r.Charging)warned.Remove(r.Id);
+    if(current && (r.Percent.HasValue || r.Level.HasValue)){if(r.Percent>20 || r.Level==BatteryLevel.Medium || r.Level==BatteryLevel.Full || r.Level==BatteryLevel.Wired || r.Charging)warned.Remove(r.Id);
      if(r.LowBattery && !r.Charging && warned.Add(r.Id))tray[0].ShowBalloonTip(6000,L.T("Пора зарядить ")+r.Name,r.Display,ToolTipIcon.Warning);}
     lines.Add(r.Name+" "+r.Display+" "+r.State);
    }

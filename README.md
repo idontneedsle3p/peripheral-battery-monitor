@@ -6,13 +6,13 @@
 
 Wireless mouse, keyboard and headset battery levels on the Windows taskbar. An extensible monitor for Windows 10/11 x64; see the support list for currently implemented devices.
 
-The first stage of generalization is implemented: a driver registry, device discovery, a dynamic device list in the tray menu, and a taskbar widget. **MCHOSE X9** and **MCHOSE AX5 Pro Max** have been tested on hardware. An extensible architecture does not mean every device is supported. Bluetooth Battery Service is not implemented yet.
+The first stage of generalization is implemented: a driver registry, device discovery, a dynamic device list in the tray menu, and a taskbar widget. **MCHOSE X9** and **MCHOSE AX5 Pro Max** have been tested on hardware. An extensible architecture does not mean every device is supported. Standard Bluetooth LE Battery Service is now supported; vendor-specific Bluetooth protocols are not covered.
 
 The taskbar shows minimalist outline icons and battery percentages on a transparent background. Text and icons are antialiased and scaled to the taskbar DPI.
 
 ### Features
 
-- Reads actual battery levels through the standard Windows HID API.
+- Reads actual battery levels through Windows HID, Bluetooth GATT and XInput APIs.
 - Refreshes automatically every 30 seconds, with manual refresh from the menu.
 - Shows the widget on all monitors, the primary monitor, or a selected screen.
 - Positions the widget next to the system tray; uses UI Automation to locate the clock on secondary taskbars.
@@ -29,6 +29,8 @@ The application runs locally and makes no network requests.
 
 ### Supported devices
 
+New broad-protocol batch: **standard Bluetooth LE Battery Service**, **Logitech HID++ 2.x**, **compatible Razer mice/keyboards** and **24 SteelSeries Arctis/Nova/GameBuds USB IDs**. These additions are experimental; exact protocol boundaries and hardware status are documented in [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md).
+
 Standard **XInput controller support** is now available across compatible brands, with discrete battery levels rather than invented percentages. Experimental GLW keyboard and V9 Turbo+ support is also included. See [compatibility and limitations](SUPPORTED_DEVICES.md).
 
 Expanded MCHOSE support includes A5/AX5 variants, classic L7/M7/A7-family receivers, and newer K7 V2-family receivers. New additions are **experimental**, not hardware-verified in this project. See the complete [device and USB ID matrix](SUPPORTED_DEVICES.md).
@@ -39,11 +41,11 @@ Expanded MCHOSE support includes A5/AX5 variants, classic L7/M7/A7-family receiv
 | MCHOSE AX5 Pro Max | 2.4 GHz USB receiver | `2023:F024` | Tested on hardware |
 | MCHOSE AX5 Pro Max | USB cable | `2023:F022` | Implemented, not tested on hardware |
 
-Windows must show taskbars on secondary screens for the widget to appear there. Horizontal taskbars are supported. Bluetooth and battery history are not implemented yet. The X9 protocol does not report charging state. When a device stops responding, its last reading is explicitly marked as stale.
+Windows must show taskbars on secondary screens for the widget to appear there. Horizontal taskbars are supported. Battery history and vendor-specific classic Bluetooth protocols are not implemented yet. The X9 protocol does not report charging state. When a device stops responding, its last reading is explicitly marked as stale.
 
 ### Build and run
 
-Requires Windows x64 and .NET Framework 4.x with the `csc.exe` compiler. Rust, Visual Studio, and third-party libraries are not required.
+Requires Windows x64 and .NET Framework 4.8 with the `csc.exe` compiler. Rust, Visual Studio, and third-party libraries are not required.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
@@ -79,6 +81,10 @@ Settings and the latest log are stored in `%LOCALAPPDATA%\MyMchose`. The selecte
 | `MchoseMouseDrivers.cs` | Experimental classic and modern MCHOSE mouse protocols |
 | `MchoseKeyboardDriver.cs` | Experimental GLW keyboard protocol |
 | `XInputSource.cs` | Standard Windows controller battery source |
+| `BluetoothBatterySource.cs` | Paired BLE devices with standard Battery Service |
+| `LogitechBatterySource.cs` | HID++ 2.x direct devices and receiver slots |
+| `RazerBatteryDriver.cs` | Razer battery and charging feature reports |
+| `SteelSeriesBatteryDriver.cs` | Whitelisted Arctis/Nova/GameBuds status reports |
 | `Localization.cs` | Translation dictionary, language selection, and persistence |
 | `Hid.cs` | HID enumeration and Win32 communication |
 | `Monitors.cs` | Monitor selection and widget instance management |
@@ -105,13 +111,13 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 Заряд беспроводных мышей, клавиатур и гарнитур на панели задач Windows. Расширяемый монитор для Windows 10/11 x64; список реализованных устройств приведён ниже.
 
-Реализована первая стадия универсализации: реестр модулей, обнаружение устройств, произвольный список в меню трея и динамический виджет. Сейчас проверены **MCHOSE X9** и **MCHOSE AX5 Pro Max**; наличие расширяемой основы не означает поддержку всех моделей. Bluetooth Battery Service пока не реализован.
+Реализована первая стадия универсализации: реестр модулей, обнаружение устройств, произвольный список в меню трея и динамический виджет. Сейчас проверены **MCHOSE X9** и **MCHOSE AX5 Pro Max**; наличие расширяемой основы не означает поддержку всех моделей. Стандартный Bluetooth LE Battery Service теперь поддерживается; фирменные Bluetooth-протоколы пока не реализованы.
 
 На панели задач отображаются минималистичные контурные значки гарнитуры и мыши с процентами заряда. Фон прозрачный; подписи и значки сглажены и учитывают DPI панели задач.
 
 ### Возможности
 
-- Чтение реального заряда через стандартный Windows HID API.
+- Чтение заряда через Windows HID, Bluetooth GATT и XInput.
 - Автоматическое обновление каждые 30 секунд и ручное обновление из меню.
 - Показ на всех мониторах, только на основном или на выбранном экране.
 - Автоматическое размещение у системного трея; на дополнительном мониторе положение часов определяется через UI Automation.
@@ -128,6 +134,8 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 
 ### Устройства
 
+Новая пачка: **стандартный Bluetooth LE Battery Service**, **Logitech HID++ 2.x**, **совместимые мыши и клавиатуры Razer**, **24 USB ID гарнитур SteelSeries Arctis/Nova/GameBuds**. Дополнения экспериментальные; границы протоколов и аппаратные проверки перечислены в [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md).
+
 Добавлен стандартный источник **XInput** для совместимых геймпадов разных брендов: уровни заряда вместо выдуманных процентов. Также включены экспериментальные модули клавиатур GLW и V9 Turbo+. Подробнее: [совместимость и ограничения](SUPPORTED_DEVICES.md).
 
 Добавлена экспериментальная поддержка вариантов A5/AX5, классических приёмников семейств L7/M7/A7 и новых приёмников K7 V2. Новые модели ещё не проверены в этом проекте на оборудовании. Полная [таблица моделей и USB ID](SUPPORTED_DEVICES.md).
@@ -138,11 +146,11 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 | MCHOSE AX5 Pro Max | USB-приёмник 2,4 ГГц | `2023:F024` | Проверено на реальном устройстве |
 | MCHOSE AX5 Pro Max | USB-кабель | `2023:F022` | Реализовано, на устройстве не проверено |
 
-Для дополнительных экранов Windows должна показывать панели задач на этих экранах. Поддерживаются горизонтальные панели задач. Bluetooth и история заряда пока не реализованы. Протокол X9 не сообщает состояние зарядки. Если устройство не отвечает, последнее значение явно помечается как старое.
+Для дополнительных экранов Windows должна показывать панели задач на этих экранах. Поддерживаются горизонтальные панели задач. История заряда и фирменные протоколы классического Bluetooth пока не реализованы. Протокол X9 не сообщает состояние зарядки. Если устройство не отвечает, последнее значение явно помечается как старое.
 
 ### Сборка и запуск
 
-Нужны Windows x64 и .NET Framework 4.x с компилятором `csc.exe`. Rust, Visual Studio и сторонние библиотеки не требуются.
+Нужны Windows x64 и .NET Framework 4.8 с компилятором `csc.exe`. Rust, Visual Studio и сторонние библиотеки не требуются.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\build.ps1
@@ -178,6 +186,10 @@ powershell -ExecutionPolicy Bypass -File .\test.ps1
 | `MchoseMouseDrivers.cs` | Экспериментальные классический и новый протоколы MCHOSE |
 | `MchoseKeyboardDriver.cs` | Экспериментальный протокол клавиатур GLW |
 | `XInputSource.cs` | Стандартный источник заряда геймпадов Windows |
+| `BluetoothBatterySource.cs` | Сопряжённые BLE-устройства с Battery Service |
+| `LogitechBatterySource.cs` | HID++ 2.x и слоты приёмников |
+| `RazerBatteryDriver.cs` | Feature-отчёты батареи и зарядки Razer |
+| `SteelSeriesBatteryDriver.cs` | Разрешённые отчёты Arctis/Nova/GameBuds |
 | `Localization.cs` | Словарь переводов, выбор и сохранение языка |
 | `Hid.cs` | Перечисление HID и обмен через Win32 |
 | `Monitors.cs` | Выбор экранов и управление копиями виджета |
