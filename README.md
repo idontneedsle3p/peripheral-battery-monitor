@@ -29,6 +29,8 @@ The application runs locally and makes no network requests.
 
 ### Supported devices
 
+The latest batch adds Corsair Void/HS70-family receivers, HyperX Cloud III S/III/II Core/Alpha, SteelSeries Aerox/Prime mice and Jabra Link 390 battery queries. All are experimental; see the [complete USB ID matrix](SUPPORTED_DEVICES.md).
+
 Native Sony **DualShock 4 / DualSense / DualSense Edge** and SteelSeries **Nova Pro Wireless / Omni / Elite** modules are included experimentally. Coarse battery reports are displayed as steps (`n/10`, `n/8`). See the [support matrix](SUPPORTED_DEVICES.md) for USB IDs and transport restrictions.
 
 New broad-protocol batch: **standard Bluetooth LE Battery Service**, **Logitech HID++ 2.x**, **compatible Razer mice/keyboards** and **24 SteelSeries Arctis/Nova/GameBuds USB IDs**. These additions are experimental; exact protocol boundaries and hardware status are documented in [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md).
@@ -135,6 +137,8 @@ The taskbar indicator was inspired by [BatteryHub](https://github.com/ferloom/Wi
 Программа работает локально и не обращается к сети.
 
 ### Устройства
+
+Последняя пачка: приёмники Corsair Void/HS70, HyperX Cloud III S/III/II Core/Alpha, мыши SteelSeries Aerox/Prime и батарея через Jabra Link 390. Все дополнения экспериментальные; [полная таблица USB ID](SUPPORTED_DEVICES.md).
 
 Экспериментально добавлены штатные протоколы Sony **DualShock 4 / DualSense / DualSense Edge** и SteelSeries **Nova Pro Wireless / Omni / Elite**. Ступенчатый заряд отображается как `n/10` или `n/8`. USB ID и ограничения подключения — в [таблице совместимости](SUPPORTED_DEVICES.md).
 

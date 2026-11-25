@@ -19,6 +19,12 @@
 | Sony DualSense / DualSense Edge | `054C:0CE6`, `0DF2` | Experimental; USB/Bluetooth, reported steps / Экспериментально; ступени заряда |
 | SteelSeries Arctis Nova Pro Wireless variants / варианты | `1038:12E0`, `12E5`, `225D`, vendor collection on interface / vendor-коллекция интерфейса `04` | Experimental; 0–8 steps / Экспериментально; 0–8 ступеней |
 | SteelSeries Arctis Nova Pro Omni / Nova Elite | `1038:2290`, `2244`, `2270`, collection / коллекция `FFC0:0001` | Experimental / Экспериментально |
+| Corsair Void / Void Pro / Void Elite / compatible HS70 family | VID `1B1C`; PIDs `1B1C`, `1B27`, `0A14`, `0A16`, `0A17`, `0A1D`, `0A1A`, `1B2A`, `1B23`, `1B29`, `0A55`, `0A51`, `0A52`, `0A38`, `0A4F`, `0A2B`, `0A75`, `0A56`; `FFC5:0001` | Experimental / Экспериментально |
+| HyperX Cloud III S Wireless / Cloud Stinger 3 Wireless | `03F0:06BE`, `02CC`, `03C6`; `01C0:0001` | Experimental / Экспериментально |
+| HyperX Cloud II Core Wireless / Cloud III Wireless | `03F0:0995`, `0795`, `05B7`, `0C9D`; `FF13:0001`, 62-byte reports | Experimental / Экспериментально |
+| HyperX Cloud Alpha Wireless | `03F0:098D`; `FF43:0202` | Experimental / Экспериментально |
+| SteelSeries Aerox 3 / 5 / 9 and Prime Wireless variants | VID `1038`; PIDs `1838`, `183A`, `1878`, `187A`, `1890`, `1892`, `1852`, `1854`, `185C`, `185E`, `1858`, `185A`, `1840`, `1842`, `1860`; interface `03` | Experimental / Экспериментально |
+| Jabra headsets behind Link 390 / гарнитуры за приёмником Link 390 | `0B0E:2E50`, `2E51`, `2E56`, `2E57`; `FF00:0005`, 64-byte reports | Experimental / Экспериментально |
 | MCHOSE AX5 Pro Max receiver / приёмник | `2023:F024` | Tested on Pro Max / Проверено на Pro Max |
 | MCHOSE AX5 Pro receiver / приёмник | `2023:F024` (shared / общий) | Experimental / Экспериментально |
 | MCHOSE A5 Pro / Pro Max receivers / приёмники | `2023:F013`, `2023:F015` | Experimental / Экспериментально |
@@ -46,6 +52,21 @@ Shared receiver IDs do not identify a precise model. Classic and modern modules 
 - [OpenRazer report format](https://github.com/openrazer/openrazer/blob/master/driver/razercommon.c).
 - [HeadsetControl](https://github.com/Sapd/HeadsetControl).
 - [Linux PlayStation input report layouts](https://github.com/torvalds/linux/blob/master/drivers/hid/hid-playstation.c).
+- [Linux Corsair Void status report](https://github.com/torvalds/linux/blob/master/drivers/hid/hid-corsair-void.c).
+- [HyperHeadset](https://github.com/LennardKittner/HyperHeadset).
+- [HyperX Battery Tray](https://github.com/GuacamoleGH/HyperX-Battery-Tray).
+- [rivalcfg SteelSeries protocol research](https://github.com/flozz/rivalcfg).
+- [HeadsetControl Jabra Link 390](https://github.com/Sapd/HeadsetControl/blob/master/lib/devices/jabra_link_390.hpp).
+
+## Corsair, HyperX, Aerox and Jabra
+
+Corsair capacity is shown as reported with the microphone bit removed; it can read high while charging. Initializing/disconnected and malformed states are ignored. HyperX III S/Stinger 3 battery reads do not query charging state; unsolicited charger events are not tracked in this implementation. Core/III and Alpha have separate charging queries. Voltage-only Flight/Stinger Core protocols and the older Kingston Cloud II are not included.
+
+Aerox/Prime packets with 21 battery codes are displayed as `n/20` steps. Aerox 3 Gen 2 uses its actual percentage field. Transport-specific commands are selected by PID. Other Rival protocols are not included. Jabra coverage is limited to GNP battery queries through the listed Link 390 IDs, not all Jabra products or Link 380; the displayed name identifies the receiver rather than the paired headset model.
+
+Corsair показывает переданный заряд без бита положения микрофона; во время зарядки он может быть завышен. Состояния инициализации, отключения и некорректные ответы исключаются. У HyperX III S/Stinger 3 зарядка отдельным запросом не определяется, события подключения кабеля пока не отслеживаются. Core/III и Alpha используют отдельные запросы зарядки. Протоколы Flight/Stinger Core с напряжением и старый Kingston Cloud II пока не включены.
+
+Для Aerox/Prime с 21 кодом заряда отображается `n/20`; Aerox 3 Gen 2 использует поле процентов. Команда зависит от PID и подключения. Протоколы остальных Rival пока не включены. Jabra ограничена запросом батареи GNP через перечисленные Link 390: это не поддержка всех Jabra и не Link 380. Название в меню обозначает приёмник, а не точную модель гарнитуры.
 
 ## Native Sony and Pro headsets / Sony и гарнитуры Pro
 

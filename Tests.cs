@@ -124,6 +124,35 @@ class Tests {
   var omni=new byte[17];omni[0]=1;omni[1]=0xB0;omni[6]=99;omni[14]=8;omni[15]=3;Check(SteelSeriesProBatteryDriver.Parse(0x2290,omni).Percent==99,"Nova Omni percentage is not clamped upward");
   omni[14]=0;Check(SteelSeriesProBatteryDriver.Parse(0x2290,omni)==null,"Nova Omni lost link excluded");
   L.Set("en");Check(sony.Display=="Level 6/10 · charging" && sony.ShortDisplay=="6/10","step-based battery English display");L.Set("ru");
+  Check(CorsairVoidBatteryDriver.Parse(new byte[]{0x64,0,55,177,1}).Percent==55,"Corsair battery status");
+  Check(CorsairVoidBatteryDriver.Parse(new byte[]{0x64,0,0x80|40,177,2}).Percent==40,"Corsair microphone bit masked");
+  Check(CorsairVoidBatteryDriver.Parse(new byte[]{0x64,0,80,177,5}).Charging,"Corsair charging status");
+  Check(!CorsairVoidBatteryDriver.Parse(new byte[]{0x64,0,100,177,4}).Charging,"Corsair full status");
+  Check(CorsairVoidBatteryDriver.Parse(new byte[]{0x64,0,60,49,1})==null,"Corsair lost wireless link");
+  Check(CorsairVoidBatteryDriver.Parse(new byte[]{0x64,0,127,177,1})==null,"Corsair invalid capacity");
+  Check(CorsairVoidBatteryDriver.Parse(new byte[]{0x66,0,50,177,1})==null,"Corsair foreign report");
+  Check(HyperXBatteryDriver.ParseModern(new byte[]{12,2,3,1,0,6,71,15,64}).Percent==71,"HyperX recorded battery reply");
+  Check(HyperXBatteryDriver.ParseModern(new byte[]{12,2,3,1,0,6,255,0,0})==null,"HyperX offline code");
+  Check(HyperXBatteryDriver.ParseModern(new byte[]{12,2,3,1,0,6,0,0,0})==null,"HyperX empty request echo");
+  Check(HyperXBatteryDriver.ParseModern(new byte[]{12,2,3,1,0,4,71,15,64})==null,"HyperX other command");
+  Check(HyperXBatteryDriver.ParseCore(new byte[]{0x66,0x0D,1,1,63}).Percent==63,"HyperX Core battery response");
+  Check(HyperXBatteryDriver.ParseCore(new byte[]{0x66,0x89,0,0,0})==null,"HyperX Core not initialized");
+  Check(HyperXBatteryDriver.ParseCharging(new byte[]{0x66,0x0C,1}).Charging,"HyperX Core charging");
+  Check(!HyperXBatteryDriver.ParseCharging(new byte[]{0x66,0x8A,2}).Charging,"HyperX Core full is not charging");
+  Check(HyperXAlphaBatteryDriver.Parse(new byte[]{0x21,0xBB,0x0B,77},0x0B).Percent==77,"HyperX Alpha percentage");
+  Check(HyperXAlphaBatteryDriver.Parse(new byte[]{0x21,0xBB,0x0C,1},0x0B)==null,"HyperX Alpha unrelated reply");
+  Check(HyperXAlphaBatteryDriver.Parse(new byte[]{0x21,0xBB,0x0B,101},0x0B)==null,"HyperX Alpha invalid percentage");
+  Check(SteelSeriesMouseBatteryDriver.Parse(0x1838,new byte[]{0xD2,11}).Steps==10,"Aerox 3 raw steps");
+  Check(SteelSeriesMouseBatteryDriver.Parse(0x1854,new byte[]{0x92,0x80|21}).Charging,"Aerox wired charging");
+  Check(SteelSeriesMouseBatteryDriver.Parse(0x1890,new byte[]{0xD2,0,88}).Percent==88,"Aerox Gen 2 percentage");
+  Check(SteelSeriesMouseBatteryDriver.Parse(0x1838,new byte[]{0xD2,0})==null,"Aerox offline code");
+  Check(SteelSeriesMouseBatteryDriver.Parse(0x1838,new byte[]{0xD2,22})==null,"Aerox invalid raw step");
+  Check(SteelSeriesMouseBatteryDriver.Parse(0x1838,new byte[]{0x92,11})==null,"Aerox incorrect transport command");
+  var jabra=new byte[]{5,0,4,0x22,0xC8,0x12,2,1,67};Check(JabraLinkBatteryDriver.Parse(jabra,0x22).Percent==67 && JabraLinkBatteryDriver.Parse(jabra,0x22).Charging,"Jabra battery and charging");
+  Check(JabraLinkBatteryDriver.Parse(jabra,0x23)==null,"Jabra other transaction excluded");
+  Check(JabraLinkBatteryDriver.Parse(JabraLinkBatteryDriver.Request(0x22),0x22)==null,"Jabra request echo excluded");
+  jabra[4]=0xCF;Check(JabraLinkBatteryDriver.Parse(jabra,0x22)==null,"Jabra declared length validated");
+  Check(!new CorsairVoidBatteryDriver().Matches(new HidCollection{Vid=0x1B1C,Pid=0xFFFF,Page=0xFFC5,Usage=1,Input=5,Output=2}),"Corsair unsupported PID excluded");
   Console.WriteLine(checks+" protocol, registry and localization checks passed");return 0;
  }
  static void KeyboardChecksum(byte[] r){int sum=0;for(int i=5;i<65;i++)sum+=r[i];r[4]=(byte)sum;}

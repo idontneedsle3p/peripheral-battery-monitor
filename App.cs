@@ -96,7 +96,7 @@ class TrayApplication:ApplicationContext {
  async void Poll(bool force=false){
   if(busy || quitting)return;busy=true;refresh.Enabled=false;status.Text=L.T("Читаю заряд устройств…");nextPoll=DateTime.UtcNow.AddSeconds(30);
   try{
-   var lines=new System.Collections.Generic.List<string>();var fresh=await Task.Run(()=>{var c=Hid.Enumerate();foreach(var h in c)if(h.Vid==0x2023 || h.Vid==0x3837 || h.Vid==0x5253 || h.Vid==0x046D || h.Vid==0x1532 || h.Vid==0x1038 || h.Vid==0x054C)lines.Add(h.ToString());return Devices.Poll(c,s=>lines.Add(s),force);});
+   var lines=new System.Collections.Generic.List<string>();var fresh=await Task.Run(()=>{var c=Hid.Enumerate();foreach(var h in c)if(h.Vid==0x2023 || h.Vid==0x3837 || h.Vid==0x5253 || h.Vid==0x046D || h.Vid==0x1532 || h.Vid==0x1038 || h.Vid==0x054C || h.Vid==0x1B1C || h.Vid==0x03F0 || h.Vid==0x0B0E)lines.Add(h.ToString());return Devices.Poll(c,s=>lines.Add(s),force);});
    if(quitting)return;
    values=fresh;
    foreach(var r in values){
