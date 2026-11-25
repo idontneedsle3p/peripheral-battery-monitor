@@ -51,8 +51,8 @@ class TaskbarView:NativeWindow,IDisposable {
    }catch{return null;}
   });
  }
- Reading[] values={new Reading("MCHOSE X9"),new Reading("MCHOSE AX5 PRO MAX")};
- public int Width{get{return (int)(138*scale);}}public int Height{get{return (int)(26*scale);}}
+ Reading[] values=new Reading[0];
+ public int Width{get{return (int)((values.Length==0?138:Math.Min(values.Length,6)*70+6)*scale);}}public int Height{get{return (int)(26*scale);}}
  public int Left{get{return 0;}}public int Top{get{return 0;}}public Point Location{get{return Point.Empty;}set{}}
  public bool Visible{get{return visible;}set{visible=value;if(!value && Handle!=IntPtr.Zero)ShowWindow(Handle,0);else Place();}}
  public TaskbarView(IntPtr parent,Action openWindow,ContextMenuStrip context){taskbar=parent;open=openWindow;menu=context;timer.Interval=1000;timer.Tick+=(s,e)=>Place();timer.Start();}
@@ -93,26 +93,27 @@ class TaskbarView:NativeWindow,IDisposable {
   }
  }
  internal static Bitmap DrawStrip(Reading[] values,float scale,bool light){
-  int width=(int)(138*scale),height=(int)(26*scale);
+  int width=(int)((values.Length==0?138:Math.Min(values.Length,6)*70+6)*scale),height=(int)(26*scale);
   using(var high=new Bitmap(width*4,height*4,PixelFormat.Format32bppPArgb)){
   using(var g=Graphics.FromImage(high)){
    g.Clear(Color.Transparent);g.ScaleTransform(scale*4,scale*4);g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.HighQuality;g.PixelOffsetMode=System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;g.TextRenderingHint=System.Drawing.Text.TextRenderingHint.AntiAlias;
    using(var font=new Font("Segoe UI Variable Small",12.5f,FontStyle.Regular,GraphicsUnit.Pixel)){
-    for(int i=0;i<2;i++){
-     float x=3+i*70;var r=values[i];bool stale=r.State.Contains("последнее");Color color=stale?Color.FromArgb(145,145,145):r.Percent<=15?Color.FromArgb(240,102,102):light?Color.FromArgb(30,30,30):Color.FromArgb(239,242,247);
+    if(values.Length==0)using(var b=new SolidBrush(Color.Gray))g.DrawString("Нет устройств",font,b,3,5);
+    for(int i=0;i<Math.Min(values.Length,6);i++){
+     float x=3+i*70;var r=values[i];bool stale=r.IsStale;Color color=stale?Color.FromArgb(145,145,145):r.Percent<=15?Color.FromArgb(240,102,102):light?Color.FromArgb(30,30,30):Color.FromArgb(239,242,247);
      using(var pen=new Pen(color,1.3f))using(var brush=new SolidBrush(color)){
       pen.StartCap=pen.EndCap=System.Drawing.Drawing2D.LineCap.Round;pen.LineJoin=System.Drawing.Drawing2D.LineJoin.Round;
       using(var path=new System.Drawing.Drawing2D.GraphicsPath()){
-       if(i==0){
+       if(r.Kind==DeviceKind.Headset){
         path.AddBezier(x+1,14,x-0.5f,3,x+15.5f,3,x+14,14);g.DrawPath(pen,path);path.Reset();
         path.AddArc(x+0.5f,12,4,8,180,90);path.AddArc(x+0.5f,12,4,8,270,90);path.AddArc(x+0.5f,12,4,8,0,90);path.AddArc(x+0.5f,12,4,8,90,90);path.CloseFigure();g.DrawPath(pen,path);path.Reset();
         path.AddArc(x+10.5f,12,4,8,180,90);path.AddArc(x+10.5f,12,4,8,270,90);path.AddArc(x+10.5f,12,4,8,0,90);path.AddArc(x+10.5f,12,4,8,90,90);path.CloseFigure();g.DrawPath(pen,path);
-       }else{
+       }else if(r.Kind==DeviceKind.Mouse){
         path.AddBezier(x+2,11,x+2,3,x+14,3,x+14,11);path.AddLine(x+14,11,x+14,16);path.AddBezier(x+14,16,x+14,23,x+2,23,x+2,16);path.CloseFigure();g.DrawPath(pen,path);
         g.DrawLine(pen,x+8,7.5f,x+8,11);
-       }
+       }else{g.DrawRectangle(pen,x,8,16,11);g.DrawLine(pen,x+4,12,x+12,12);g.DrawLine(pen,x+4,15,x+12,15);}
       }
-      string text=r.Percent.HasValue?r.Percent+"%":"—";
+      string text=values.Length>6 && i==5?"+"+(values.Length-5):(r.Percent.HasValue?r.Percent+"%":"—");
       using(var format=(StringFormat)StringFormat.GenericTypographic.Clone()){
        format.FormatFlags|=StringFormatFlags.NoClip;
        // Outline glyphs retain smooth coverage on a transparent layered window.

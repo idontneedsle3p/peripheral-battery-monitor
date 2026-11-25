@@ -13,7 +13,7 @@ class Strip:IDisposable {
  [DllImport("user32.dll")]static extern bool GetWindowRect(IntPtr h,out Rect r);
  readonly Dictionary<IntPtr,TaskbarView> views=new Dictionary<IntPtr,TaskbarView>();
  readonly Action open;readonly ContextMenuStrip menu;readonly Timer timer=new Timer();
- Reading[] values={new Reading("MCHOSE X9"),new Reading("MCHOSE AX5 PRO MAX")};
+ Reading[] values=new Reading[0];
  bool visible=true,disposed;string target="all";
  public Action MoveFinished;
  public int Width{get{return 138;}}public int Height{get{return 26;}}public int Left{get{return 0;}}public int Top{get{return 0;}}public Point Location{get{return Point.Empty;}set{}}
